@@ -1,0 +1,6 @@
+How does unwarap work in simplerr?
+    
+
+How do I format eris error as json? How does that look like? 
+How do I wrap an error code in an error code? 
+
