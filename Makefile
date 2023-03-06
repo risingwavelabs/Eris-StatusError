@@ -81,3 +81,11 @@ release-tag: build fmt lint test
 release-push:
 	@echo Publishing release
 	@git push --follow-tags
+
+spellcheck:
+	@if command -v cspell > /dev/null 2>&1 ; then \
+	    cspell lint -c hack/cspell/cspell.json --relative --no-progress --no-summary --show-suggestions -e 'vendor/*' --gitignore **/*.go **/*.md; \
+	else \
+		echo "ERROR: cspell not found, install it manually! Link: https://cspell.org/docs/getting-started"; \
+		exit 1; \
+	fi

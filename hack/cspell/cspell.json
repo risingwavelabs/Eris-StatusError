@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "dictionaryDefinitions": [
+    {
+      "name": "misc",
+      "path": "hack/cspell/dicts/misc.txt",
+      "addWords": true
+    },
+    {
+      "name": "makefile",
+      "path": "hack/cspell/dicts/makefile.txt",
+      "addWords": true
+    },
+    {
+      "name": "k8s",
+      "path": "hack/cspell/dicts/k8s.txt",
+      "addWords": true
+    },
+    {
+      "name": "go",
+      "path": "hack/cspell/dicts/go.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": [
+    "misc",
+    "k8s",
+    "go",
+    "makefile"
+  ],
+  "ignorePaths": [
+    "config",
+    "legacy",
+    "docs/general/api.md"
+  ],
+  "languageSettings": [
+    {
+      "languageId": "makefile",
+      "locale": "*",
+      "dictionaries": [
+        "makefile"
+      ]
+    }
+  ]
+}
