@@ -6,3 +6,6 @@
 - [ ] Rename into StatusError
 - [ ] Update Readme 
 - [ ] Choose Logo 
+- [ ] Translation between gRPC err codes and our codes?
+
+  

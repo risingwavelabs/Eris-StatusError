@@ -38,7 +38,7 @@ func (f *StackFrame) format(sep string) string {
 // to ascend, with 0 identifying the caller of Caller.
 func caller(skip int) *frame {
 	pc, _, _, _ := runtime.Caller(skip)
-	var f frame = frame(pc)
+	f := frame(pc)
 	return &f
 }
 
@@ -122,7 +122,7 @@ func (s *stack) get() []StackFrame {
 	return stackFrames
 }
 
-// isGlobal determines if the stack trace represents a global error
+// isGlobal determines if the stack trace represents a global error.
 func (s *stack) isGlobal() bool {
 	frames := s.get()
 	for _, f := range frames {

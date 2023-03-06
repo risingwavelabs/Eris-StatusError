@@ -211,17 +211,21 @@ func (e *rootError) Error() string {
 	return fmt.Sprint(e)
 }
 
+// Format pretty prints the error.
 func (e *rootError) Format(s fmt.State, verb rune) {
 	printError(e, s, verb)
 }
 
+// Is returns true if error messages in both errors are equivalent.
 func (e *rootError) Is(target error) bool {
+	// TODO: Also check for error codes here?
 	if err, ok := target.(*rootError); ok {
 		return e.msg == err.msg
 	}
 	return e.msg == target.Error()
 }
 
+// As returns true if the error message in the target error is equivalent to the error message in the root error.
 func (e *rootError) As(target any) bool {
 	t := reflect.Indirect(reflect.ValueOf(target)).Interface()
 	if err, ok := t.(*rootError); ok {
@@ -233,6 +237,7 @@ func (e *rootError) As(target any) bool {
 	return false
 }
 
+// Unwrap returns the contained error.
 func (e *rootError) Unwrap() error {
 	return e.ext
 }
@@ -250,14 +255,17 @@ type wrapError struct {
 	code  Code
 }
 
+// Error returns the error message.
 func (e *wrapError) Error() string {
 	return fmt.Sprint(e)
 }
 
+// Format pretty prints the error.
 func (e *wrapError) Format(s fmt.State, verb rune) {
 	printError(e, s, verb)
 }
 
+// Is returns true if error messages in both errors are equivalent.
 func (e *wrapError) Is(target error) bool {
 	if err, ok := target.(*wrapError); ok {
 		return e.msg == err.msg
@@ -265,6 +273,7 @@ func (e *wrapError) Is(target error) bool {
 	return e.msg == target.Error()
 }
 
+// As returns true if the error message in the target error is equivalent to the error message in the wrap error.
 func (e *wrapError) As(target any) bool {
 	t := reflect.Indirect(reflect.ValueOf(target)).Interface()
 	if err, ok := t.(*wrapError); ok {
