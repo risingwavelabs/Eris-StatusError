@@ -6,3 +6,4 @@
 - [ ] Additional status code field
 - [ ] GH: Run unit tests on each commit
 - [ ] GH: Squash on merge
+- [ ] Rename into StatusError
