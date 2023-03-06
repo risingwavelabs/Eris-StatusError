@@ -2,9 +2,8 @@
 - [ ] Error should support any value
 - [ ] Update Readme 
 - [ ] Choose Logo 
-- [ ] Update License 
 - [ ] additional values `map[string]any`
 - [ ] Additional status code field
-
-
-
+- [ ] GH: Run unit tests on each commit
+- [ ] GH: Squash on merge
+- [ ] Rename into StatusError
