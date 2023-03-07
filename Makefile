@@ -53,6 +53,8 @@ test:
 	@echo Running tests
 	@go test -race -v .
 
+tests: test
+
 ## Run benchmark tests
 bench:
 	@echo Running benchmark tests
