@@ -1,11 +1,11 @@
 - [x] update unittests 
 - [ ] Error should support any value
 - [ ] additional values `map[string]any`
-- [ ] Additional status code field
+- [x] Additional status code field
 - [x] GH: Run unit tests on each commit
 - [ ] Rename into StatusError
 - [ ] Update Readme 
 - [ ] Choose Logo 
 - [ ] Translation between gRPC err codes and our codes?
 - [ ] Should code default to unknown?
-  
+- [ ] Check the API that we expose to the user. Is that good?
