@@ -1,4 +1,4 @@
-- [ ] update unittests 
+- [x] update unittests 
 - [ ] Error should support any value
 - [ ] additional values `map[string]any`
 - [ ] Additional status code field
