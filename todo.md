@@ -1,9 +1,11 @@
-- [ ] add unittests 
+- [x] update unittests 
 - [ ] Error should support any value
-- [ ] Update Readme 
-- [ ] Choose Logo 
 - [ ] additional values `map[string]any`
 - [ ] Additional status code field
-- [ ] GH: Run unit tests on each commit
-- [ ] GH: Squash on merge
+- [x] GH: Run unit tests on each commit
 - [ ] Rename into StatusError
+- [ ] Update Readme 
+- [ ] Choose Logo 
+- [ ] Translation between gRPC err codes and our codes?
+- [ ] Should code default to unknown?
+  

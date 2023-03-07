@@ -314,5 +314,5 @@ func TestMainFunc(t *testing.T) {
 
 	// b, _ = json.Marshal(eris.ToJSON(f(), true))
 	// fmt.Println(string(b))
-	panic("tmp")
+	// panic("tmp")
 }

@@ -206,6 +206,7 @@ func ToCustomJSON(err error, format JSONFormat) map[string]any {
 		for _, eLink := range upErr.ErrChain {
 			wrapMap := eLink.formatJSON(format)
 			if format.Options.InvertOutput {
+				wrapArr = append(wrapArr, wrapMap)
 			} else {
 				wrapArr = append([]map[string]any{wrapMap}, wrapArr...)
 			}
@@ -285,6 +286,7 @@ func (err *ErrRoot) formatStr(format StringFormat) string {
 func (err *ErrRoot) formatJSON(format JSONFormat) map[string]any {
 	rootMap := make(map[string]any)
 	rootMap["code"] = err.code.String()
+	rootMap["message"] = err.Msg
 	if format.Options.WithTrace {
 		rootMap["stack"] = err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
 	}

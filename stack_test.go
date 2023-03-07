@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	file              = "eris/stack_test.go"
+	file              = "StatusError/stack_test.go"
 	readFunc          = "eris_test.ReadFile"
 	parseFunc         = "eris_test.ParseFile"
 	processFunc       = "eris_test.ProcessFile"
@@ -26,7 +26,7 @@ var (
 	errExt = errors.New("external error")
 )
 
-// example func that either returns a wrapped global or creates/wraps a new local error
+// example func that either returns a wrapped global or creates/wraps a new local error.
 func ReadFile(fname string, global bool, external bool) error {
 	var err error
 	if !external && !global { // local eris
@@ -41,7 +41,7 @@ func ReadFile(fname string, global bool, external bool) error {
 	return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname)
 }
 
-// example func that just catches and returns an error
+// example func that just catches and returns an error.
 func ParseFile(fname string, global bool, external bool) error {
 	err := ReadFile(fname, global, external)
 	if err != nil {
@@ -50,7 +50,7 @@ func ParseFile(fname string, global bool, external bool) error {
 	return nil
 }
 
-// example func that wraps an error with additional context
+// example func that wraps an error with additional context.
 func ProcessFile(fname string, global bool, external bool) error {
 	// parse the file
 	err := ParseFile(fname, global, external)
