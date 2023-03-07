@@ -38,6 +38,7 @@ func NewDefaultStringFormat(options FormatOptions) StringFormat {
 	return stringFmt
 }
 
+// TODO: change this documentation comment. KVs and code
 // ToString returns a default formatted string for a given error.
 //
 // An error without trace will be formatted as follows:
@@ -58,6 +59,7 @@ func ToString(err error, withTrace bool) string {
 	}))
 }
 
+// TODO: change this documentation comment. KVs and code
 // ToCustomString returns a custom formatted string for a given error.
 //
 // To declare custom format, the Format object has to be passed as an argument.
@@ -118,6 +120,7 @@ func NewDefaultJSONFormat(options FormatOptions) JSONFormat {
 	}
 }
 
+// TODO: change this documentation comment. KVs and code
 // ToJSON returns a JSON formatted map for a given error.
 //
 // An error without trace will be formatted as follows:

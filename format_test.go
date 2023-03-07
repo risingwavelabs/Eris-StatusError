@@ -206,14 +206,22 @@ func TestFormatJSONwithKVs(t *testing.T) {
 		},
 	}
 
+	serializableObj := struct {
+		A string `json:"a"`
+		B int    `json:"b"`
+	}{
+		A: "aVal",
+		B: 1,
+	}
 	KVsObjJson := map[string]any{
-		"obj": struct {
-			A string `json:"a"`
-			B int    `json:"b"`
-		}{
-			A: "aVal",
-			B: 1,
-		},
+		"obj": serializableObj,
+	}
+
+	intVal := 1
+	ptrKVs := map[string]any{
+		"nullPtr": nil,
+		"intPtr":  &intVal,
+		"objPtr":  &KVsObjJson,
 	}
 
 	// TODO: valid kvs with custom object that can be serialized
@@ -234,10 +242,13 @@ func TestFormatJSONwithKVs(t *testing.T) {
 			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjNoJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
 			output: `{"root":{"KVs":{"obj":{}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
-		// TODO
 		"basic wrapped error + kvs with obj w serializer": {
 			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
 			output: `{"root":{"KVs":{"obj":{"a":"aVal","b":1}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+		},
+		"basic wrapped error + ptr kvs": {
+			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, ptrKVs), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
+			output: `{"root":{"KVs":{"intPtr":1,"nullPtr":null,"objPtr":{"obj":{"a":"aVal","b":1}}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 
 		// TODO: wrap with kvs
