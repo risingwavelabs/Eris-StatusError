@@ -239,26 +239,23 @@ func TestFormatJSONwithKVs(t *testing.T) {
 			output: `{"root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"canceled","message":"root error"}}`,
 		},
 		"basic wrapped error + kvs with obj w/o serializer": {
-			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjNoJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
-			output: `{"root":{"KVs":{"obj":{}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+			input:  eris.Wrap_with_KVs(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjNoJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown, ptrKVs),
+			output: `{"root":{"KVs":{"obj":{}},"code":"not found","message":"root error"},"wrap":[{"KVs":{"intPtr":1,"nullPtr":null,"objPtr":{"obj":{"a":"aVal","b":1}}},"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 		"basic wrapped error + kvs with obj w serializer": {
-			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
-			output: `{"root":{"KVs":{"obj":{"a":"aVal","b":1}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+			input:  eris.Wrap(eris.Wrap_with_KVs(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjJson), "additional context", eris.CodeAlreadyExists, KVsObjNoJson), "even more context", eris.CodeUnknown),
+			output: `{"root":{"KVs":{"obj":{"a":"aVal","b":1}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"KVs":{"obj":{}},"code":"already exists","message":"additional context"}]}`,
 		},
 		"basic wrapped error + ptr kvs": {
 			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, ptrKVs), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
 			output: `{"root":{"KVs":{"intPtr":1,"nullPtr":null,"objPtr":{"obj":{"a":"aVal","b":1}}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
-
-		// TODO: wrap with kvs
-
-		// // add kvs here
-		// "external error + valid kvs": {
-		// 	Input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeNotSupported),
-		// 	output: `{"external":"external error","root":{"code":"not supported","message":"additional context"}}`,
-		// },
+		"external error + valid kvs": {
+			input:  eris.Wrap_with_KVs(errors.New("external error"), "additional context", eris.CodeNotSupported, simpleKVs),
+			output: `{"external":"external error","root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"not supported","message":"additional context"}}`,
+		},
 	}
+
 	for desc, tt := range tests {
 		t.Run(desc, func(t *testing.T) {
 			j := eris.ToJSON(tt.input, false)
