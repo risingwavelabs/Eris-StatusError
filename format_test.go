@@ -194,16 +194,16 @@ func TestFormatJSON(t *testing.T) {
 		output string
 	}{
 		"basic root error": {
-			input:  eris.New("root error", eris.CodeUnknown),
-			output: `{"root":{"message":"root error"}}`,
+			input:  eris.New("root error", eris.CodeCanceled),
+			output: `{"root":{"code":"canceled","message":"root error"}}`,
 		},
 		"basic wrapped error": {
-			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeUnknown), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
-			output: `{"root":{"message":"root error"},"wrap":[{"message":"even more context"},{"message":"additional context"}]}`,
+			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeNotFound), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
+			output: `{"root":{"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 		"external error": {
-			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeUnknown),
-			output: `{"external":"external error","root":{"message":"additional context"}}`,
+			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeNotSupported),
+			output: `{"external":"external error","root":{"code":"not supported","message":"additional context"}}`,
 		},
 	}
 	for desc, tt := range tests {
@@ -222,8 +222,8 @@ func TestInvertedFormatJSON(t *testing.T) {
 		output string
 	}{
 		"basic wrapped error": {
-			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeUnknown), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
-			output: `{"root":{"message":"root error"},"wrap":[{"message":"additional context"},{"message":"even more context"}]}`,
+			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeAlreadyExists), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
+			output: `{"root":{"code":"already exists","message":"root error"},"wrap":[{"code":"unknown","message":"additional context"},{"code":"unknown","message":"even more context"}]}`,
 		},
 	}
 	for desc, tt := range tests {
@@ -246,13 +246,14 @@ func TestFormatJSONWithStack(t *testing.T) {
 		wrapOutput []map[string]any
 	}{
 		"basic wrapped error": {
-			input: eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeUnknown), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
+			input: eris.Wrap(eris.Wrap(eris.New("root error", eris.CodePermissionDenied), "additional context", eris.CodeUnavailable), "even more context", eris.CodeUnknown),
 			rootOutput: map[string]any{
+				"code":    "permission denied",
 				"message": "root error",
 			},
 			wrapOutput: []map[string]any{
-				{"message": "even more context"},
-				{"message": "additional context"},
+				{"code": "unavailable", "message": "even more context"},
+				{"code": "permission denied", "message": "additional context"},
 			},
 		},
 	}

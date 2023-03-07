@@ -7,5 +7,5 @@
 - [ ] Update Readme 
 - [ ] Choose Logo 
 - [ ] Translation between gRPC err codes and our codes?
-
+- [ ] Should code default to unknown?
   
