@@ -9,6 +9,7 @@ goimports
 golangci
 
 # General
+godoc
 +s
 go*
 *ctx
