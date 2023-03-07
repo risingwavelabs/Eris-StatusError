@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-// New creates a new root error with a static message.
+// New creates a new root error with a static message and an error code.
 func New(msg string, code Code) error {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &rootError{
@@ -15,6 +15,19 @@ func New(msg string, code Code) error {
 		msg:    msg,
 		stack:  stack,
 		code:   code,
+	}
+}
+
+// New creates a new root error with a static message, an error code and additional key-value information
+// This data may also include object. An object that does not provide json marshalling information is displayed as `{}`.
+func New_with_KVs(msg string, code Code, kvs map[string]any) error {
+	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
+	return &rootError{
+		global: stack.isGlobal(),
+		msg:    msg,
+		stack:  stack,
+		code:   code,
+		KVs:    kvs,
 	}
 }
 
@@ -205,6 +218,12 @@ type rootError struct {
 	ext    error  // error type for wrapping external errors
 	stack  *stack // root error stack trace
 	code   Code
+	KVs    map[string]any
+}
+
+// HasKVs returns true if the error has key-value pairs.
+func (e *rootError) HasKVs() bool {
+	return e.KVs != nil && len(e.KVs) > 0
 }
 
 func (e *rootError) Error() string {
@@ -252,7 +271,13 @@ type wrapError struct {
 	msg   string // wrap error message
 	err   error  // error type representing the next error in the chain
 	frame *frame // wrap error stack frame
-	code  Code
+	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
+	KVs   map[string]any
+}
+
+// TODO: mark all HasKVs lower case? Do we need to expose this?
+func (e *wrapError) HasKVs() bool {
+	return e.KVs != nil && len(e.KVs) > 0
 }
 
 // Error returns the error message.

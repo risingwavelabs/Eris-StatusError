@@ -157,6 +157,7 @@ func ToJSON(err error, withTrace bool) map[string]any {
 	}))
 }
 
+// TODO: change this documentation comment. KVs and code
 // ToCustomJSON returns a JSON formatted map for a given error.
 //
 // To declare custom format, the Format object has to be passed as an argument.
@@ -226,11 +227,13 @@ func Unpack(err error) UnpackedError {
 			upErr.ErrRoot.Msg = err.msg
 			upErr.ErrRoot.Stack = err.stack.get()
 			upErr.ErrRoot.code = err.code
+			upErr.ErrRoot.KVs = err.KVs
 		case *wrapError:
 			// prepend links in stack trace order
 			link := ErrLink{Msg: err.msg}
 			link.Frame = err.frame.get()
 			link.code = err.code
+			link.KVs = err.KVs
 			upErr.ErrChain = append([]ErrLink{link}, upErr.ErrChain...)
 		default:
 			upErr.ErrExternal = err
@@ -265,6 +268,12 @@ type ErrRoot struct {
 	Msg   string
 	Stack Stack
 	code  Code
+	KVs   map[string]any // TODO: do not expose kvs field in the different error types?
+}
+
+// HasKVs returns true if the error has key-value pairs.
+func (err *ErrRoot) HasKVs() bool {
+	return err.KVs != nil && len(err.KVs) > 0
 }
 
 // String formatter for root errors.
@@ -287,17 +296,26 @@ func (err *ErrRoot) formatJSON(format JSONFormat) map[string]any {
 	rootMap := make(map[string]any)
 	rootMap["code"] = err.code.String()
 	rootMap["message"] = err.Msg
+	if err.HasKVs() {
+		rootMap["KVs"] = err.KVs // TODO: debugging notes we lost the object at this point
+	}
 	if format.Options.WithTrace {
 		rootMap["stack"] = err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
 	}
 	return rootMap
 }
 
-// ErrLink represents a single error frame and the accompanying message.
+// ErrLink represents a single error frame and the accompanying information.
 type ErrLink struct {
 	Msg   string
 	Frame StackFrame
 	code  Code
+	KVs   map[string]any
+}
+
+// HasKVs returns true if the error has key-value pairs.
+func (eLink *ErrLink) HasKVs() bool {
+	return eLink.KVs != nil && len(eLink.KVs) > 0
 }
 
 // String formatter for wrap errors chains.
@@ -314,6 +332,9 @@ func (eLink *ErrLink) formatJSON(format JSONFormat) map[string]any {
 	wrapMap := make(map[string]any)
 	wrapMap["code"] = eLink.code.String()
 	wrapMap["message"] = fmt.Sprint(eLink.Msg)
+	if eLink.HasKVs() {
+		wrapMap["KVs"] = eLink.KVs
+	}
 	if format.Options.WithTrace {
 		wrapMap["stack"] = eLink.Frame.format(format.StackElemSep)
 	}

@@ -188,6 +188,77 @@ func TestInvertedFormatStr(t *testing.T) {
 	}
 }
 
+func TestFormatJSONwithKVs(t *testing.T) {
+	simpleKVs := map[string]any{
+		"key":  "value",
+		"key2": 2,
+		"key3": true,
+		"key4": []string{"a", "b", "c"},
+	}
+
+	KVsObjNoJson := map[string]any{
+		"obj": struct {
+			a string
+			b int
+		}{
+			a: "a",
+			b: 1,
+		},
+	}
+
+	KVsObjJson := map[string]any{
+		"obj": struct {
+			A string `json:"a"`
+			B int    `json:"b"`
+		}{
+			A: "aVal",
+			B: 1,
+		},
+	}
+
+	// TODO: valid kvs with custom object that can be serialized
+	// TODO: valid kvs with custom serializer for obj
+	// TODO: Invalid kvs without serializer for obj
+
+	// TODO: What about serializing pointers?
+
+	tests := map[string]struct {
+		input  error
+		output string
+	}{
+		"basic root error + simple kvs": {
+			input:  eris.New_with_KVs("root error", eris.CodeCanceled, simpleKVs),
+			output: `{"root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"canceled","message":"root error"}}`,
+		},
+		"basic wrapped error + kvs with obj w/o serializer": {
+			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjNoJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
+			output: `{"root":{"KVs":{"obj":{}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+		},
+		// TODO
+		"basic wrapped error + kvs with obj w serializer": {
+			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
+			output: `{"root":{"KVs":{"obj":{"a":"aVal","b":1}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+		},
+
+		// TODO: wrap with kvs
+
+		// // add kvs here
+		// "external error + valid kvs": {
+		// 	Input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeNotSupported),
+		// 	output: `{"external":"external error","root":{"code":"not supported","message":"additional context"}}`,
+		// },
+	}
+	for desc, tt := range tests {
+		t.Run(desc, func(t *testing.T) {
+			j := eris.ToJSON(tt.input, false)
+			result, _ := json.Marshal(j)
+			if got := string(result); !reflect.DeepEqual(got, tt.output) {
+				t.Errorf("ToJSON() = %v, want %v", got, tt.output)
+			}
+		})
+	}
+}
+
 func TestFormatJSON(t *testing.T) {
 	tests := map[string]struct {
 		input  error
