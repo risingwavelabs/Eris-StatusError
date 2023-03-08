@@ -66,7 +66,7 @@ test-coverage:
 	@go test -short -coverprofile cover.out -covermode=atomic ${PKG_LIST}
 
 ## Display test coverage
-display-coverage:
+display-coverage: test-coverage
 	@echo Displaying test coverage
 	@go tool cover -html=cover.out
 

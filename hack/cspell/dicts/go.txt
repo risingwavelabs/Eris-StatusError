@@ -9,6 +9,7 @@ goimports
 golangci
 
 # General
+godoc
 +s
 go*
 *ctx
@@ -63,3 +64,4 @@ tocstop
 unittests
 Wrapf
 xerrors
+Newf

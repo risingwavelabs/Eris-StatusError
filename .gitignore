@@ -9,7 +9,7 @@
 *.test
 
 # Output of the go coverage tool
-*.out
+cover.out
 
 # Dependency directories
 vendor/
