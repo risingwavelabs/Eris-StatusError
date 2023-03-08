@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrUnexpectedEOF          = eris.New("unexpected EOF", eris.CodeUnknown)
+	ErrUnexpectedEOF          = eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
 	FormattedErrUnexpectedEOF = eris.Errorf("unexpected %v", eris.CodeUnknown, "EOF")
 )
 
@@ -95,7 +95,7 @@ func TestExampleToJSON_global(t *testing.T) {
 func ExampleToJSON_local() {
 	// example func that returns an eris error
 	readFile := func(fname string) error {
-		return eris.New("unexpected EOF", eris.CodeUnknown) // line 3
+		return eris.New("unexpected EOF").WithCode(eris.CodeUnknown) // line 3
 	}
 
 	// example func that catches an error and wraps it with additional context
@@ -252,7 +252,7 @@ func TestExampleToString_global(t *testing.T) {
 func ExampleToString_local() {
 	// example func that returns an eris error
 	readFile := func(fname string) error {
-		return eris.New("unexpected EOF", eris.CodeUnknown) // line 3
+		return eris.New("unexpected EOF").WithCode(eris.CodeUnknown) // line 3
 	}
 
 	// example func that catches an error and wraps it with additional context
@@ -295,15 +295,15 @@ func TestExampleToString_local(t *testing.T) {
 }
 
 func f() error {
-	return eris.New("error message", eris.CodeDeadlineExceeded)
+	return eris.New("error message").WithCode(eris.CodeDeadlineExceeded)
 }
 
 func g() error {
-	return eris.Wrap(f(), "in function g", eris.CodeCanceled)
+	return eris.Wrap(f(), "in function g").WithCode(eris.CodeCanceled)
 }
 
 func h() error {
-	return eris.Wrap(g(), "in function h", eris.CodeAborted)
+	return eris.Wrap(g(), "in function h").WithCode(eris.CodeAborted)
 }
 
 func TestMainFunc(t *testing.T) {

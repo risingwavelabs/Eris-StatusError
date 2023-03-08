@@ -7,6 +7,14 @@ import (
 	"reflect"
 )
 
+// TODO: Rename this interface?
+type chainingError interface {
+	error
+	WithCode(Code) chainingError
+	WithProperty(string, any) chainingError
+	// Also add Code, GetKVs and HasKVs?
+}
+
 // GetCode returns the error code. Defaults to unknown, if error does not have code.
 func GetCode(err error) Code {
 	type Coder interface {
@@ -20,26 +28,13 @@ func GetCode(err error) Code {
 }
 
 // New creates a new root error with a static message and an error code.
-func New(msg string, code Code) error {
+func New(msg string) chainingError {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &rootError{
 		global: stack.isGlobal(),
 		msg:    msg,
 		stack:  stack,
-		code:   code,
-	}
-}
-
-// New creates a new root error with a static message, an error code and additional key-value information
-// This data may also include object. An object that does not provide json marshalling information is displayed as `{}`.
-func New_with_KVs(msg string, code Code, kvs map[string]any) error {
-	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
-	return &rootError{
-		global: stack.isGlobal(),
-		msg:    msg,
-		stack:  stack,
-		code:   code,
-		KVs:    kvs,
+		code:   DEFAULT_ERROR_CODE_NEW,
 	}
 }
 
@@ -63,79 +58,22 @@ func Errorf(format string, code Code, args ...any) error {
 // attempts to unwrap them while building a new error chain. If an external type does not implement the unwrap
 // interface, it flattens the error and creates a new root error from it before wrapping with the additional
 // context.
-func Wrap(err error, msg string, code Code) error {
-	return wrap(err, fmt.Sprint(msg), code)
-}
-
-// Wrap adds additional context to all error types while maintaining the type of the original error. Adds not only an error code, but also key-value pairs.
-func Wrap_with_KVs(err error, msg string, code Code, kvs map[string]any) error {
-	return wrap_with_KVs(err, fmt.Sprint(msg), code, kvs)
+func Wrap(err error, msg string) chainingError {
+	return wrap(err, fmt.Sprint(msg), DEFAULT_ERROR_CODE_WRAP)
 }
 
 // Wrapf adds additional context to all error types while maintaining the type of the original error.
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
-func Wrapf(err error, code Code, format string, args ...any) error {
+func Wrapf(err error, code Code, format string, args ...any) chainingError {
 	return wrap(err, fmt.Sprintf(format, args...), code)
 }
 
-func wrap_with_KVs(err error, msg string, code Code, kvs map[string]any) error {
+func wrap(err error, msg string, code Code) chainingError {
 	if err == nil {
-		return nil
-	}
-
-	if len(kvs) == 0 {
-		return wrap(err, msg, code)
-	}
-
-	// callers(4) skips runtime.Callers, stack.callers, this method, and Wrap(f)
-	stack := callers(4)
-	// caller(3) skips stack.caller, this method, and Wrap(f)
-	// caller(skip) has a slightly different meaning which is why it's not 4 as above
-	frame := caller(3)
-	switch e := err.(type) {
-	case *rootError:
-		if e.global {
-			// create a new root error for global values to make sure nothing interferes with the stack
-			err = &rootError{
-				global: e.global,
-				msg:    e.msg,
-				stack:  stack,
-				code:   e.code,
-				KVs:    kvs,
-			}
-		} else {
-			// insert the frame into the stack
-			e.stack.insertPC(*stack)
-		}
-	case *wrapError:
-		// insert the frame into the stack
-		if root, ok := Cause(err).(*rootError); ok {
-			root.stack.insertPC(*stack)
-		}
-	default:
-		// return a new root error that wraps the external error
 		return &rootError{
-			msg:   msg,
-			ext:   e,
-			stack: stack,
-			code:  code,
-			KVs:   kvs,
+			isNil: true,
 		}
-	}
-
-	return &wrapError{
-		msg:   msg,
-		err:   err,
-		frame: frame,
-		code:  code,
-		KVs:   kvs,
-	}
-}
-
-func wrap(err error, msg string, code Code) error {
-	if err == nil {
-		return nil
 	}
 
 	// callers(4) skips runtime.Callers, stack.callers, this method, and Wrap(f)
@@ -332,6 +270,28 @@ type rootError struct {
 	stack  *stack // root error stack trace
 	code   Code
 	KVs    map[string]any // TODO: KVs should be lower-case. no need to export this
+	isNil  bool           // flag indicating whether the error is nil
+}
+
+// WithCode sets the error code.
+func (e *rootError) WithCode(code Code) chainingError {
+	if e.isNil {
+		return e
+	}
+	e.code = code
+	return e
+}
+
+// WithProperty adds a key-value pair to the error.
+func (e *rootError) WithProperty(key string, value any) chainingError {
+	if e.isNil {
+		return e
+	}
+	if e.KVs == nil {
+		e.KVs = make(map[string]any)
+	}
+	e.KVs[key] = value
+	return e
 }
 
 // Code returns the error code.
@@ -396,6 +356,28 @@ type wrapError struct {
 	frame *frame // wrap error stack frame
 	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
 	KVs   map[string]any
+	isNil bool // flag indicating whether the error is nil
+}
+
+// WithCode sets the error code.
+func (e *wrapError) WithCode(code Code) chainingError {
+	if e.isNil {
+		return e
+	}
+	e.code = code
+	return e
+}
+
+// WithProperty adds a key-value pair to the error.
+func (e *wrapError) WithProperty(key string, value any) chainingError {
+	if e.isNil {
+		return e
+	}
+	if e.KVs == nil {
+		e.KVs = make(map[string]any)
+	}
+	e.KVs[key] = value
+	return e
 }
 
 // Code returns the error code.
