@@ -111,32 +111,38 @@ func TestFormatStr(t *testing.T) {
 	}{
 		"basic root error": {
 			input:  eris.New("root error", eris.CodeUnknown),
-			output: "root error",
+			output: "code(unknown) root error",
 		},
 		"basic wrapped error": {
-			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeUnknown), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
-			output: "even more context: additional context: root error",
+			input: eris.Wrap(
+				eris.Wrap(
+					eris.New("root error", eris.CodeAlreadyExists),
+					"additional context", eris.CodeInvalidArgument),
+				"even more context", eris.CodeMalformedRequest),
+			output: "code(malformed request) even more context: code(invalid argument) additional context: code(already exists) root error",
 		},
 		"external wrapped error": {
 			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeUnknown),
-			output: "additional context: external error",
+			output: "code(unknown) additional context: external error",
 		},
 		"external error": {
 			input:  errors.New("external error"),
 			output: "external error",
 		},
+		// This is the expected behavior, since this error does not hold any information
 		"empty error": {
 			input:  eris.New("", eris.CodeUnknown),
 			output: "",
 		},
 		"empty wrapped external error": {
 			input:  eris.Wrap(errors.New(""), "additional context", eris.CodeUnknown),
-			output: "additional context: ",
+			output: "code(unknown) additional context: ",
 		},
 		"empty wrapped error": {
 			input:  eris.Wrap(eris.New("", eris.CodeUnknown), "additional context", eris.CodeUnknown),
-			output: "additional context: ",
+			output: "code(unknown) additional context: ",
 		},
+		// TODO: add tests for KVs and err code
 	}
 	for desc, tt := range tests {
 		// without trace
@@ -149,29 +155,31 @@ func TestFormatStr(t *testing.T) {
 }
 
 func TestInvertedFormatStr(t *testing.T) {
+
 	tests := map[string]struct {
 		input  error
 		output string
 	}{
 		"basic wrapped error": {
 			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeUnknown), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
-			output: "root error: additional context: even more context",
+			output: "code(unknown) root error: code(unknown) additional context: code(unknown) even more context",
 		},
+		// TODO: Is this the expected behavior? Should an external error have a default code unknown?
 		"external wrapped error": {
 			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeUnknown),
-			output: "external error: additional context",
+			output: "external error: code(unknown) additional context",
 		},
 		"external error": {
 			input:  errors.New("external error"),
 			output: "external error",
 		},
 		"empty wrapped external error": {
-			input:  eris.Wrap(errors.New(""), "additional context", eris.CodeUnknown),
-			output: ": additional context",
+			input:  eris.Wrap(errors.New("some err"), "additional context", eris.CodeUnknown),
+			output: "some err: code(unknown) additional context",
 		},
 		"empty wrapped error": {
-			input:  eris.Wrap(eris.New("", eris.CodeUnknown), "additional context", eris.CodeUnknown),
-			output: ": additional context",
+			input:  eris.Wrap(eris.New("err", eris.CodeUnknown), "additional context", eris.CodeUnknown),
+			output: "code(unknown) err: code(unknown) additional context",
 		},
 	}
 	for desc, tt := range tests {

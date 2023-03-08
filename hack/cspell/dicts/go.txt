@@ -64,3 +64,4 @@ tocstop
 unittests
 Wrapf
 xerrors
+Newf

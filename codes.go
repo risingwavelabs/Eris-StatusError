@@ -45,6 +45,7 @@ const (
 	CodeInternal
 )
 
+// TODO: rename this to grpc error codes.
 func (c Code) String() string {
 	if s, ok := defaultErrorCodes[c]; ok {
 		return s
@@ -68,4 +69,14 @@ var defaultErrorCodes = map[Code]string{
 	CodeCanceled:           "canceled",
 	CodeResourceExhausted:  "resource exhausted",
 	CodeUnavailable:        "unavailable",
+	CodeInternal:           "internal",
 }
+
+const (
+	// Default error code assigned when using eris.New.
+	DEFAULT_ERROR_CODE_NEW = CodeUnknown
+	// Default error code assigned when using eris.Wrap or Wrapf.
+	DEFAULT_ERROR_CODE_WRAP = CodeInternal
+)
+
+// TODO Functions should use default code in default cases and never actual codes directly.

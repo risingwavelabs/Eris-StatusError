@@ -192,6 +192,47 @@ func Unwrap(err error) error {
 	return u.Unwrap()
 }
 
+func eq(a, b error) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if a == b {
+		return true
+	}
+
+	var kvA, kvB map[string]any
+	var codeA, codeB Code
+	var msgA, msgB string
+
+	if rootA, ok := a.(*rootError); ok {
+		kvA = rootA.KVs
+		codeA = rootA.code
+		msgA = rootA.msg
+	} else if wrapA, ok := a.(*wrapError); ok {
+		kvA = wrapA.KVs
+		codeA = wrapA.code
+		msgA = wrapA.msg
+	}
+
+	if rootB, ok := b.(*rootError); ok {
+		kvB = rootB.KVs
+		codeB = rootB.code
+		msgB = rootB.msg
+	}
+	if wrapB, ok := b.(*wrapError); ok {
+		kvB = wrapB.KVs
+		codeB = wrapB.code
+		msgB = wrapB.msg
+	}
+
+	return reflect.DeepEqual(kvA, kvB) && codeA == codeB && msgA == msgB
+}
+
 // Is reports whether any error in err's chain matches target.
 //
 // The chain consists of err itself followed by the sequence of errors obtained by repeatedly calling Unwrap.
@@ -205,7 +246,7 @@ func Is(err, target error) bool {
 
 	isComparable := reflect.TypeOf(target).Comparable()
 	for {
-		if isComparable && err == target {
+		if isComparable && eq(err, target) {
 			return true
 		}
 		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
@@ -301,6 +342,11 @@ func (e *rootError) Code() Code {
 // HasKVs returns true if the error has key-value pairs.
 func (e *rootError) HasKVs() bool {
 	return e.KVs != nil && len(e.KVs) > 0
+}
+
+// GetKVs returns the key-value pairs associated with the error.
+func (e *rootError) GetKVs() map[string]any {
+	return e.KVs
 }
 
 func (e *rootError) Error() string {

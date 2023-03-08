@@ -286,10 +286,17 @@ func (err *ErrRoot) HasKVs() bool {
 
 // String formatter for root errors.
 func (err *ErrRoot) formatStr(format StringFormat) string {
+
 	kvs := ""
 	if len(err.KVs) > 0 {
 		kvs = fmt.Sprintf(" KVs(%v)", err.KVs)
 	}
+
+	// Do not print default errors
+	if kvs == "" && err.code == DEFAULT_ERROR_CODE_NEW && err.Msg == "" {
+		return ""
+	}
+
 	str := fmt.Sprintf("code(%s)%s %s%s", err.code.String(), kvs, err.Msg, format.MsgStackSep)
 	if format.Options.WithTrace {
 		stackArr := err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
