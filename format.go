@@ -79,13 +79,20 @@ func ToCustomString(err error, format StringFormat) string {
 
 	var str string
 	if format.Options.InvertOutput {
+		errSep := false
 		if format.Options.WithExternal && upErr.ErrExternal != nil {
 			str += formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
 			if (format.Options.WithTrace && len(upErr.ErrRoot.Stack) > 0) || upErr.ErrRoot.Msg != "" {
+				errSep = true
 				str += format.ErrorSep
 			}
 		}
-		str += upErr.ErrRoot.formatStr(format)
+		rootErrStr := upErr.ErrRoot.formatStr(format)
+		space := ""
+		if !errSep && len(rootErrStr) > 0 && len(upErr.ErrChain) == 0 {
+			space = " "
+		}
+		str += space + rootErrStr
 		for _, eLink := range upErr.ErrChain {
 			str += format.ErrorSep + eLink.formatStr(format)
 		}

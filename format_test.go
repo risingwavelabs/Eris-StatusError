@@ -118,8 +118,8 @@ func TestFormatStr(t *testing.T) {
 				eris.Wrap(
 					eris.New("root error", eris.CodeAlreadyExists),
 					"additional context", eris.CodeInvalidArgument),
-				"even more context", eris.CodeMalformedRequest),
-			output: "code(malformed request) even more context: code(invalid argument) additional context: code(already exists) root error",
+				"even more context", eris.CodeInvalidArgument),
+			output: "code(invalid argument) even more context: code(invalid argument) additional context: code(already exists) root error",
 		},
 		"external wrapped error": {
 			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeUnknown),
@@ -127,7 +127,7 @@ func TestFormatStr(t *testing.T) {
 		},
 		"external error": {
 			input:  errors.New("external error"),
-			output: "external error",
+			output: "code(canceled) external error",
 		},
 		// This is the expected behavior, since this error does not hold any information
 		"empty error": {
@@ -171,7 +171,7 @@ func TestInvertedFormatStr(t *testing.T) {
 		},
 		"external error": {
 			input:  errors.New("external error"),
-			output: "external error",
+			output: "external error code(canceled) ",
 		},
 		"empty wrapped external error": {
 			input:  eris.Wrap(errors.New("some err"), "additional context", eris.CodeUnknown),
@@ -259,8 +259,8 @@ func TestFormatJSONwithKVs(t *testing.T) {
 			output: `{"root":{"KVs":{"intPtr":1,"nullPtr":null,"objPtr":{"obj":{"a":"aVal","b":1}}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 		"external error + valid kvs": {
-			input:  eris.Wrap_with_KVs(errors.New("external error"), "additional context", eris.CodeNotSupported, simpleKVs),
-			output: `{"external":"external error","root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"not supported","message":"additional context"}}`,
+			input:  eris.Wrap_with_KVs(errors.New("external error"), "additional context", eris.CodeNotFound, simpleKVs),
+			output: `{"external":"external error","root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"not found","message":"additional context"}}`,
 		},
 	}
 
@@ -289,8 +289,8 @@ func TestFormatJSON(t *testing.T) {
 			output: `{"root":{"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 		"external error": {
-			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeNotSupported),
-			output: `{"external":"external error","root":{"code":"not supported","message":"additional context"}}`,
+			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeDataLoss),
+			output: `{"external":"external error","root":{"code":"data loss","message":"additional context"}}`,
 		},
 	}
 	for desc, tt := range tests {
