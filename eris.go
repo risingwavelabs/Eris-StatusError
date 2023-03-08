@@ -7,7 +7,19 @@ import (
 	"reflect"
 )
 
-// New creates a new root error with a static message.
+// GetCode returns the error code. Defaults to unknown, if error does not have code.
+func GetCode(err error) Code {
+	type Coder interface {
+		Code() Code
+	}
+	codeErr, ok := err.(Coder)
+	if !ok {
+		return CodeUnknown
+	}
+	return codeErr.Code()
+}
+
+// New creates a new root error with a static message and an error code.
 func New(msg string, code Code) error {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &rootError{
@@ -15,6 +27,19 @@ func New(msg string, code Code) error {
 		msg:    msg,
 		stack:  stack,
 		code:   code,
+	}
+}
+
+// New creates a new root error with a static message, an error code and additional key-value information
+// This data may also include object. An object that does not provide json marshalling information is displayed as `{}`.
+func New_with_KVs(msg string, code Code, kvs map[string]any) error {
+	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
+	return &rootError{
+		global: stack.isGlobal(),
+		msg:    msg,
+		stack:  stack,
+		code:   code,
+		KVs:    kvs,
 	}
 }
 
@@ -29,6 +54,7 @@ func Errorf(format string, code Code, args ...any) error {
 	}
 }
 
+// TODO: update this documentation
 // Wrap adds additional context to all error types while maintaining the type of the original error.
 //
 // This method behaves differently for each error type. For root errors, the stack trace is reset to the current
@@ -41,11 +67,70 @@ func Wrap(err error, msg string, code Code) error {
 	return wrap(err, fmt.Sprint(msg), code)
 }
 
+// Wrap adds additional context to all error types while maintaining the type of the original error. Adds not only an error code, but also key-value pairs.
+func Wrap_with_KVs(err error, msg string, code Code, kvs map[string]any) error {
+	return wrap_with_KVs(err, fmt.Sprint(msg), code, kvs)
+}
+
 // Wrapf adds additional context to all error types while maintaining the type of the original error.
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
 func Wrapf(err error, code Code, format string, args ...any) error {
 	return wrap(err, fmt.Sprintf(format, args...), code)
+}
+
+func wrap_with_KVs(err error, msg string, code Code, kvs map[string]any) error {
+	if err == nil {
+		return nil
+	}
+
+	if len(kvs) == 0 {
+		return wrap(err, msg, code)
+	}
+
+	// callers(4) skips runtime.Callers, stack.callers, this method, and Wrap(f)
+	stack := callers(4)
+	// caller(3) skips stack.caller, this method, and Wrap(f)
+	// caller(skip) has a slightly different meaning which is why it's not 4 as above
+	frame := caller(3)
+	switch e := err.(type) {
+	case *rootError:
+		if e.global {
+			// create a new root error for global values to make sure nothing interferes with the stack
+			err = &rootError{
+				global: e.global,
+				msg:    e.msg,
+				stack:  stack,
+				code:   e.code,
+				KVs:    kvs,
+			}
+		} else {
+			// insert the frame into the stack
+			e.stack.insertPC(*stack)
+		}
+	case *wrapError:
+		// insert the frame into the stack
+		if root, ok := Cause(err).(*rootError); ok {
+			root.stack.insertPC(*stack)
+		}
+	default:
+		// return a new root error that wraps the external error
+		return &rootError{
+			msg:   msg,
+			ext:   e,
+			stack: stack,
+			code:  code,
+			KVs:   kvs,
+		}
+	}
+
+	return &wrapError{
+		msg:   msg,
+		err:   err,
+		frame: frame,
+		code:  code,
+		KVs:   kvs,
+	}
 }
 
 func wrap(err error, msg string, code Code) error {
@@ -107,6 +192,47 @@ func Unwrap(err error) error {
 	return u.Unwrap()
 }
 
+func eq(a, b error) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if a == b {
+		return true
+	}
+
+	var kvA, kvB map[string]any
+	var codeA, codeB Code
+	var msgA, msgB string
+
+	if rootA, ok := a.(*rootError); ok {
+		kvA = rootA.KVs
+		codeA = rootA.code
+		msgA = rootA.msg
+	} else if wrapA, ok := a.(*wrapError); ok {
+		kvA = wrapA.KVs
+		codeA = wrapA.code
+		msgA = wrapA.msg
+	}
+
+	if rootB, ok := b.(*rootError); ok {
+		kvB = rootB.KVs
+		codeB = rootB.code
+		msgB = rootB.msg
+	}
+	if wrapB, ok := b.(*wrapError); ok {
+		kvB = wrapB.KVs
+		codeB = wrapB.code
+		msgB = wrapB.msg
+	}
+
+	return reflect.DeepEqual(kvA, kvB) && codeA == codeB && msgA == msgB
+}
+
 // Is reports whether any error in err's chain matches target.
 //
 // The chain consists of err itself followed by the sequence of errors obtained by repeatedly calling Unwrap.
@@ -120,7 +246,7 @@ func Is(err, target error) bool {
 
 	isComparable := reflect.TypeOf(target).Comparable()
 	for {
-		if isComparable && err == target {
+		if isComparable && eq(err, target) {
 			return true
 		}
 		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
@@ -205,6 +331,22 @@ type rootError struct {
 	ext    error  // error type for wrapping external errors
 	stack  *stack // root error stack trace
 	code   Code
+	KVs    map[string]any // TODO: KVs should be lower-case. no need to export this
+}
+
+// Code returns the error code.
+func (e *rootError) Code() Code {
+	return e.code
+}
+
+// HasKVs returns true if the error has key-value pairs.
+func (e *rootError) HasKVs() bool {
+	return e.KVs != nil && len(e.KVs) > 0
+}
+
+// GetKVs returns the key-value pairs associated with the error.
+func (e *rootError) GetKVs() map[string]any {
+	return e.KVs
 }
 
 func (e *rootError) Error() string {
@@ -252,7 +394,18 @@ type wrapError struct {
 	msg   string // wrap error message
 	err   error  // error type representing the next error in the chain
 	frame *frame // wrap error stack frame
-	code  Code
+	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
+	KVs   map[string]any
+}
+
+// Code returns the error code.
+func (e *wrapError) Code() Code {
+	return e.code
+}
+
+// TODO: mark all HasKVs lower case? Do we need to expose this?
+func (e *wrapError) HasKVs() bool {
+	return e.KVs != nil && len(e.KVs) > 0
 }
 
 // Error returns the error message.

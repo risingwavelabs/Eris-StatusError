@@ -11,7 +11,7 @@ const (
 	CodeUnknown
 	// The client specified an invalid argument. Note that this differs from FAILED_PRECONDITION. INVALID_ARGUMENT indicates arguments that are problematic regardless of the state of the system (e.g., a malformed file name).
 	CodeInvalidArgument
-	// The deadline expired before the operation could complete. For operations that change the state of the system, this error may be returned even if the operation has completed successfully. For example, a successful response from a server could have been delayed long
+	// The deadline expired before the operation could complete. For operations that change the state of the system, this error may be returned even if the operation has completed successfully. For example, a successful response from a server could have been delayed long.
 	CodeDeadlineExceeded
 	// Some requested entity (e.g., file or directory) was not found. Note to server developers: if a request is denied for an entire class of users, such as gradual feature rollout or undocumented allowlist, NOT_FOUND may be used. If a request is denied for some users within a class of users, such as user-based access control, PERMISSION_DENIED must be used.
 	CodeNotFound
@@ -39,11 +39,12 @@ const (
 	CodeUnauthenticated
 )
 
+// TODO: rename this to grpc error codes.
 func (c Code) String() string {
 	if s, ok := defaultErrorCodes[c]; ok {
 		return s
 	}
-	return defaultErrorCodes[CodeUnknown]
+	return defaultErrorCodes[DEFAULT_ERROR_CODE_NEW]
 }
 
 var defaultErrorCodes = map[Code]string{
@@ -61,6 +62,15 @@ var defaultErrorCodes = map[Code]string{
 	CodeResourceExhausted:  "resource exhausted",
 	CodeUnauthenticated:    "unauthenticated",
 	CodeUnavailable:        "unavailable",
-	CodeUnimplemented:      "unimplemented",
 	CodeUnknown:            "unknown",
+	CodeUnimplemented:      "unimplemented",
 }
+
+const (
+	// Default error code assigned when using eris.New.
+	DEFAULT_ERROR_CODE_NEW = CodeUnknown
+	// Default error code assigned when using eris.Wrap or Wrapf.
+	DEFAULT_ERROR_CODE_WRAP = CodeInternal
+)
+
+// TODO Functions should use default code in default cases and never actual codes directly.
