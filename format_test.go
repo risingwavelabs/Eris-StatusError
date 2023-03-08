@@ -202,8 +202,8 @@ func TestFormatJSON(t *testing.T) {
 			output: `{"root":{"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 		"external error": {
-			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeNotSupported),
-			output: `{"external":"external error","root":{"code":"not supported","message":"additional context"}}`,
+			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeDataLoss),
+			output: `{"external":"external error","root":{"code":"data loss","message":"additional context"}}`,
 		},
 	}
 	for desc, tt := range tests {

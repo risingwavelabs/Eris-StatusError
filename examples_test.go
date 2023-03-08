@@ -303,7 +303,7 @@ func g() error {
 }
 
 func h() error {
-	return eris.Wrap(g(), "in function h", eris.CodeConstraintViolated)
+	return eris.Wrap(g(), "in function h", eris.CodeAborted)
 }
 
 func TestMainFunc(t *testing.T) {
