@@ -71,9 +71,9 @@ func Wrapf(err error, code Code, format string, args ...any) chainingError {
 
 func wrap(err error, msg string, code Code) chainingError {
 	if err == nil {
-		return &rootError{
-			isNil: true,
-		}
+		// Compiler needs to know concrete type in order to call functions of interface
+		var nilPtr *rootError
+		return nilPtr
 	}
 
 	// callers(4) skips runtime.Callers, stack.callers, this method, and Wrap(f)
@@ -270,13 +270,12 @@ type rootError struct {
 	stack  *stack // root error stack trace
 	code   Code
 	KVs    map[string]any // TODO: KVs should be lower-case. no need to export this
-	isNil  bool           // flag indicating whether the error is nil
 }
 
 // WithCode sets the error code.
 func (e *rootError) WithCode(code Code) chainingError {
-	if e.isNil {
-		return e
+	if e == nil {
+		return nil
 	}
 	e.code = code
 	return e
@@ -284,8 +283,8 @@ func (e *rootError) WithCode(code Code) chainingError {
 
 // WithProperty adds a key-value pair to the error.
 func (e *rootError) WithProperty(key string, value any) chainingError {
-	if e.isNil {
-		return e
+	if e == nil {
+		return nil
 	}
 	if e.KVs == nil {
 		e.KVs = make(map[string]any)
@@ -356,13 +355,12 @@ type wrapError struct {
 	frame *frame // wrap error stack frame
 	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
 	KVs   map[string]any
-	isNil bool // flag indicating whether the error is nil
 }
 
 // WithCode sets the error code.
 func (e *wrapError) WithCode(code Code) chainingError {
-	if e.isNil {
-		return e
+	if e == nil {
+		return nil
 	}
 	e.code = code
 	return e
@@ -370,8 +368,8 @@ func (e *wrapError) WithCode(code Code) chainingError {
 
 // WithProperty adds a key-value pair to the error.
 func (e *wrapError) WithProperty(key string, value any) chainingError {
-	if e.isNil {
-		return e
+	if e == nil {
+		return nil
 	}
 	if e.KVs == nil {
 		e.KVs = make(map[string]any)
