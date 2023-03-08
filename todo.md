@@ -1,17 +1,12 @@
 - [x] update unittests 
-- [ ] Error should support any value
 - [ ] additional values `map[string]any`
 - [x] Additional status code field
 - [x] GH: Run unit tests on each commit
-- [ ] Rename into StatusError
 - [ ] Update Readme 
-- [ ] Choose Logo 
 - [ ] Translation between gRPC err codes and our codes?
-- [ ] Should code default to unknown?
-- [ ] Check the API that we expose to the user. Is that good?
 - [ ] Read code docs `make docs`
 - [ ] Read godoc docs
-
+- [ ] [change API](https://risingwave-labs.slack.com/archives/C04RXGV1UG5/p1678268856049459?thread_ts=1678245482.608339&cid=C04RXGV1UG5)
 
 tests: 
 test if map is printed 

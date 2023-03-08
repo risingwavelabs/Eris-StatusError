@@ -61,6 +61,20 @@ func setupTestCase(wrapf bool, cause error, input []string) error {
 	return err
 }
 
+func TestDefaultCodes(t *testing.T) {
+	// TODO: Change this to defaults function calls
+	newErr := eris.New("some error", eris.CodeUnknown)
+	errCode := eris.GetCode(newErr)
+	if errCode != eris.CodeUnknown {
+		t.Errorf("New errors supposed to default to code 'unknown', but defaulted to %s", errCode)
+	}
+	wrapErr := eris.Wrap(newErr, "wrap err", eris.CodeInternal)
+	errCode = eris.GetCode(wrapErr)
+	if errCode != eris.CodeInternal {
+		t.Errorf("Wrap errors supposed to default to code 'internal', but defaulted to %s", errCode)
+	}
+}
+
 func TestErrorWrapping(t *testing.T) {
 	tests := map[string]struct {
 		cause  error    // root error

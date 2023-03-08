@@ -7,6 +7,18 @@ import (
 	"reflect"
 )
 
+// GetCode returns the error code. Defaults to unknown, if error does not have code.
+func GetCode(err error) Code {
+	type Coder interface {
+		Code() Code
+	}
+	codeErr, ok := err.(Coder)
+	if !ok {
+		return CodeUnknown
+	}
+	return codeErr.Code()
+}
+
 // New creates a new root error with a static message and an error code.
 func New(msg string, code Code) error {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
@@ -281,6 +293,11 @@ type rootError struct {
 	KVs    map[string]any // TODO: KVs should be lower-case. no need to export this
 }
 
+// Code returns the error code.
+func (e *rootError) Code() Code {
+	return e.code
+}
+
 // HasKVs returns true if the error has key-value pairs.
 func (e *rootError) HasKVs() bool {
 	return e.KVs != nil && len(e.KVs) > 0
@@ -333,6 +350,11 @@ type wrapError struct {
 	frame *frame // wrap error stack frame
 	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
 	KVs   map[string]any
+}
+
+// Code returns the error code.
+func (e *wrapError) Code() Code {
+	return e.code
 }
 
 // TODO: mark all HasKVs lower case? Do we need to expose this?

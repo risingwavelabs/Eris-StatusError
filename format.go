@@ -274,6 +274,11 @@ type ErrRoot struct {
 	KVs   map[string]any // TODO: do not expose kvs field in the different error types?
 }
 
+// Code returns the error code.
+func (err *ErrRoot) Code() Code {
+	return err.code
+}
+
 // HasKVs returns true if the error has key-value pairs.
 func (err *ErrRoot) HasKVs() bool {
 	return err.KVs != nil && len(err.KVs) > 0
@@ -281,7 +286,11 @@ func (err *ErrRoot) HasKVs() bool {
 
 // String formatter for root errors.
 func (err *ErrRoot) formatStr(format StringFormat) string {
-	str := err.Msg + format.MsgStackSep
+	kvs := ""
+	if len(err.KVs) > 0 {
+		kvs = fmt.Sprintf(" KVs(%v)", err.KVs)
+	}
+	str := fmt.Sprintf("code(%s)%s %s%s", err.code.String(), kvs, err.Msg, format.MsgStackSep)
 	if format.Options.WithTrace {
 		stackArr := err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
 		for i, frame := range stackArr {
@@ -316,6 +325,11 @@ type ErrLink struct {
 	KVs   map[string]any
 }
 
+// Code returns the error code.
+func (eLink *ErrLink) Code() Code {
+	return eLink.code
+}
+
 // HasKVs returns true if the error has key-value pairs.
 func (eLink *ErrLink) HasKVs() bool {
 	return eLink.KVs != nil && len(eLink.KVs) > 0
@@ -323,7 +337,11 @@ func (eLink *ErrLink) HasKVs() bool {
 
 // String formatter for wrap errors chains.
 func (eLink *ErrLink) formatStr(format StringFormat) string {
-	str := eLink.Msg + format.MsgStackSep
+	kvs := ""
+	if len(eLink.KVs) > 0 {
+		kvs = fmt.Sprintf(" KVs(%v)", eLink.KVs)
+	}
+	str := fmt.Sprintf("code(%s)%s %s%s", eLink.code.String(), kvs, eLink.Msg, format.MsgStackSep)
 	if format.Options.WithTrace {
 		str += format.PreStackSep + eLink.Frame.format(format.StackElemSep)
 	}
