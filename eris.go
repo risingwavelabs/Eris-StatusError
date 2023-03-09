@@ -317,13 +317,12 @@ func (e *rootError) Format(s fmt.State, verb rune) {
 	printError(e, s, verb)
 }
 
-// Is returns true if error messages in both errors are equivalent.
+// Is returns true if both errors have the same message and code. Ignores additional KV pairs.
 func (e *rootError) Is(target error) bool {
-	// TODO: Also check for error codes here?
 	if err, ok := target.(*rootError); ok {
-		return e.msg == err.msg
+		return e.msg == err.msg && e.code == err.code
 	}
-	return e.msg == target.Error()
+	return e.msg == target.Error() && e.code == DEFAULT_UNKNOWN_CODE
 }
 
 // As returns true if the error message in the target error is equivalent to the error message in the root error.
@@ -353,7 +352,7 @@ type wrapError struct {
 	msg   string // wrap error message
 	err   error  // error type representing the next error in the chain
 	frame *frame // wrap error stack frame
-	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
+	code  Code
 	kvs   map[string]any
 }
 
@@ -383,7 +382,7 @@ func (e *wrapError) Code() Code {
 	return e.code
 }
 
-// TODO: mark all HasKVs lower case? Do we need to expose this?
+// HasKVs returns true if the error has key-value pairs.
 func (e *wrapError) HasKVs() bool {
 	return e.kvs != nil && len(e.kvs) > 0
 }

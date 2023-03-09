@@ -278,7 +278,7 @@ type ErrRoot struct {
 	Msg   string
 	Stack Stack
 	code  Code
-	kvs   map[string]any // TODO: do not expose kvs field in the different error types?
+	kvs   map[string]any
 }
 
 // Code returns the error code.
