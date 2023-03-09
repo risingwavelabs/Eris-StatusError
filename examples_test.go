@@ -46,7 +46,7 @@ func TestExampleToJSON_external(t *testing.T) {
 func ExampleToJSON_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(ErrUnexpectedEOF, eris.CodeUnknown, "error reading file '%v'", fname) // line 6
+		return eris.Wrapf(ErrUnexpectedEOF, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 	}
 
 	// example func that catches and returns an error without modification
@@ -103,7 +103,7 @@ func ExampleToJSON_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname) // line 11
+			return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -123,7 +123,7 @@ func ExampleToJSON_local() {
 		// process the file
 		err := processFile(fname) // line 29
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error printing file '%v'", fname) // line 31
+			return eris.Wrapf(err, "error printing file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -194,7 +194,7 @@ func TestExampleToString_external(t *testing.T) {
 func ExampleToString_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(FormattedErrUnexpectedEOF, eris.CodeUnknown, "error reading file '%v'", fname) // line 6
+		return eris.Wrapf(FormattedErrUnexpectedEOF, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 	}
 
 	// example func that catches and returns an error without modification
@@ -212,7 +212,7 @@ func ExampleToString_global() {
 		// parse the file
 		err := parseFile(fname) // line 22
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error processing file '%v'", fname) // line 24
+			return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -260,7 +260,7 @@ func ExampleToString_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname) // line 11
+			return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}

@@ -38,7 +38,7 @@ func ReadFile(fname string, global bool, external bool) error {
 	} else { // global external
 		err = fmt.Errorf("external context: %w", errExt)
 	}
-	return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname)
+	return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 }
 
 // example func that just catches and returns an error.
@@ -55,7 +55,7 @@ func ProcessFile(fname string, global bool, external bool) error {
 	// parse the file
 	err := ParseFile(fname, global, external)
 	if err != nil {
-		return eris.Wrapf(err, eris.CodeUnknown, "error processing file '%v'", fname)
+		return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeUnknown)
 	}
 	return nil
 }

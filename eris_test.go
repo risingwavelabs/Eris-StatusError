@@ -53,7 +53,7 @@ func setupTestCase(wrapf bool, cause error, input []string) error {
 	err := cause
 	for _, str := range input {
 		if wrapf {
-			err = eris.Wrapf(err, eris.CodeUnknown, "%v", str) // TODO: Change wrapf to chaining func
+			err = eris.Wrapf(err, "%v", str).WithCode(eris.CodeUnknown)
 		} else {
 			err = eris.Wrap(err, str).WithCode(eris.CodeUnknown)
 		}

@@ -65,8 +65,8 @@ func Wrap(err error, msg string) statusError {
 // Wrapf adds additional context to all error types while maintaining the type of the original error.
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
-func Wrapf(err error, code Code, format string, args ...any) statusError {
-	return wrap(err, fmt.Sprintf(format, args...), code)
+func Wrapf(err error, format string, args ...any) statusError {
+	return wrap(err, fmt.Sprintf(format, args...), DEFAULT_ERROR_CODE_WRAP)
 }
 
 func wrap(err error, msg string, code Code) statusError {
