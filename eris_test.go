@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	globalErr          = eris.New("global error", eris.CodeUnknown)
+	globalErr          = eris.New("global error").WithCode(eris.CodeUnknown)
 	formattedGlobalErr = eris.Errorf("%v global error", eris.CodeUnknown, "formatted")
 )
 
@@ -53,9 +53,9 @@ func setupTestCase(wrapf bool, cause error, input []string) error {
 	err := cause
 	for _, str := range input {
 		if wrapf {
-			err = eris.Wrapf(err, eris.CodeUnknown, "%v", str)
+			err = eris.Wrapf(err, "%v", str).WithCode(eris.CodeUnknown)
 		} else {
-			err = eris.Wrap(err, str, eris.CodeUnknown)
+			err = eris.Wrap(err, str).WithCode(eris.CodeUnknown)
 		}
 	}
 	return err
@@ -63,12 +63,12 @@ func setupTestCase(wrapf bool, cause error, input []string) error {
 
 func TestDefaultCodes(t *testing.T) {
 	// TODO: Change this to defaults function calls
-	newErr := eris.New("some error", eris.CodeUnknown)
+	newErr := eris.New("some error").WithCode(eris.CodeUnknown)
 	errCode := eris.GetCode(newErr)
 	if errCode != eris.CodeUnknown {
 		t.Errorf("New errors supposed to default to code 'unknown', but defaulted to %s", errCode)
 	}
-	wrapErr := eris.Wrap(newErr, "wrap err", eris.CodeInternal)
+	wrapErr := eris.Wrap(newErr, "wrap err").WithCode(eris.CodeInternal)
 	errCode = eris.GetCode(wrapErr)
 	if errCode != eris.CodeInternal {
 		t.Errorf("Wrap errors supposed to default to code 'internal', but defaulted to %s", errCode)
@@ -96,7 +96,7 @@ func TestErrorWrapping(t *testing.T) {
 			output: "code(unknown) even more context: code(unknown) additional context: code(unknown) formatted global error",
 		},
 		"standard error wrapping with a local root cause": {
-			cause:  eris.New("root error", eris.CodeUnknown),
+			cause:  eris.New("root error").WithCode(eris.CodeUnknown),
 			input:  []string{"additional context", "even more context"},
 			output: "code(unknown) even more context: code(unknown) additional context: code(unknown) root error",
 		},
@@ -235,7 +235,7 @@ func TestErrorUnwrap(t *testing.T) {
 		output []string // expected output
 	}{
 		"unwrapping error with internal root cause (eris.New)": {
-			cause: eris.New("root error", eris.CodeUnknown),
+			cause: eris.New("root error").WithCode(eris.CodeUnknown),
 			input: []string{"additional context", "even more context"},
 			output: []string{
 				"code(unknown) even more context: code(unknown) additional context: code(unknown) root error",
@@ -298,26 +298,26 @@ func TestErrorIs(t *testing.T) {
 		output  bool     // expected comparison result
 	}{
 		"root error (internal)": {
-			cause:   eris.New("root error", eris.CodeUnknown),
+			cause:   eris.New("root error").WithCode(eris.CodeUnknown),
 			input:   []string{"additional context", "even more context"},
-			compare: eris.New("root error", eris.CodeUnknown),
+			compare: eris.New("root error").WithCode(eris.CodeUnknown),
 			output:  true,
 		},
 		"error not in chain": {
-			cause:   eris.New("root error", eris.CodeUnknown),
-			compare: eris.New("other error", eris.CodeUnknown),
+			cause:   eris.New("root error").WithCode(eris.CodeUnknown),
+			compare: eris.New("other error").WithCode(eris.CodeUnknown),
 			output:  false,
 		},
 		"middle of chain (internal)": {
-			cause:   eris.New("root error", eris.CodeUnknown),
+			cause:   eris.New("root error").WithCode(eris.CodeUnknown),
 			input:   []string{"additional context", "even more context"},
-			compare: eris.New("additional context", eris.CodeUnknown),
+			compare: eris.New("additional context").WithCode(eris.CodeUnknown),
 			output:  true,
 		},
 		"another in middle of chain (internal)": {
-			cause:   eris.New("root error", eris.CodeUnknown),
+			cause:   eris.New("root error").WithCode(eris.CodeUnknown),
 			input:   []string{"additional context", "even more context"},
-			compare: eris.New("even more context", eris.CodeUnknown),
+			compare: eris.New("even more context").WithCode(eris.CodeUnknown),
 			output:  true,
 		},
 		"root error (external)": {
@@ -329,7 +329,7 @@ func TestErrorIs(t *testing.T) {
 		"wrapped error from global root error": {
 			cause:   globalErr,
 			input:   []string{"additional context", "even more context"},
-			compare: eris.Wrap(globalErr, "additional context", eris.CodeUnknown),
+			compare: eris.Wrap(globalErr, "additional context").WithCode(eris.CodeUnknown),
 			output:  true,
 		},
 		"comparing against external error": {
@@ -353,7 +353,7 @@ func TestErrorIs(t *testing.T) {
 			output: true,
 		},
 		"comparing against nil error": {
-			cause:   eris.New("root error", eris.CodeUnknown),
+			cause:   eris.New("root error").WithCode(eris.CodeUnknown),
 			compare: nil,
 			output:  false,
 		},
@@ -383,8 +383,8 @@ func TestErrorIs(t *testing.T) {
 
 func TestErrorAs(t *testing.T) {
 	externalError := errors.New("external error")
-	rootErr := eris.New("root error", eris.CodeUnknown)
-	wrappedErr := eris.Wrap(rootErr, "additional context", eris.CodeUnknown)
+	rootErr := eris.New("root error").WithCode(eris.CodeUnknown)
+	wrappedErr := eris.Wrap(rootErr, "additional context").WithCode(eris.CodeUnknown)
 	customErr := withLayer{
 		msg: "additional context",
 		err: withEmptyLayer{
@@ -437,7 +437,7 @@ func TestErrorAs(t *testing.T) {
 			output: nil,
 		},
 		"root error against external target": {
-			cause:  eris.New("root error", eris.CodeUnknown),
+			cause:  eris.New("root error").WithCode(eris.CodeUnknown),
 			target: &externalError,
 			match:  false,
 			output: nil,
@@ -449,7 +449,7 @@ func TestErrorAs(t *testing.T) {
 			output: nil,
 		},
 		"nil wrapped error against root error target": {
-			cause:  eris.Wrap(nil, "additional context", eris.CodeUnknown),
+			cause:  eris.Wrap(nil, "additional context").WithCode(eris.CodeUnknown),
 			target: &rootErr,
 			match:  false,
 			output: nil,
@@ -467,7 +467,7 @@ func TestErrorAs(t *testing.T) {
 			output: rootErr,
 		},
 		"root error against different root error": {
-			cause:  eris.New("other root error", eris.CodeUnknown),
+			cause:  eris.New("other root error").WithCode(eris.CodeUnknown),
 			target: &rootErr,
 			match:  false,
 			output: nil,
@@ -479,7 +479,7 @@ func TestErrorAs(t *testing.T) {
 			output: wrappedErr,
 		},
 		"wrapped error against different wrapped error": {
-			cause:  eris.Wrap(nil, "some other error", eris.CodeUnknown),
+			cause:  eris.Wrap(nil, "some other error").WithCode(eris.CodeUnknown),
 			target: &wrappedErr,
 			match:  false,
 			output: nil,
@@ -510,7 +510,7 @@ func TestErrorAs(t *testing.T) {
 }
 
 func TestErrorCause(t *testing.T) {
-	globalErr := eris.New("global error", eris.CodeUnknown)
+	globalErr := eris.New("global error").WithCode(eris.CodeUnknown)
 	extErr := errors.New("external error")
 	customErr := withMessage{
 		msg: "external error",
@@ -636,8 +636,8 @@ func (CustomErr) Error() string {
 
 func TestCustomErrorAs(t *testing.T) {
 	original := CustomErr{}
-	wrap1 := eris.Wrap(original, "wrap1", eris.CodeUnknown)
-	wrap2 := eris.Wrap(wrap1, "wrap2", eris.CodeUnknown)
+	wrap1 := eris.Wrap(original, "wrap1").WithCode(eris.CodeUnknown)
+	wrap2 := eris.Wrap(wrap1, "wrap2").WithCode(eris.CodeUnknown)
 
 	var customErr CustomErr
 	if !eris.As(wrap1, &customErr) {
@@ -655,7 +655,7 @@ func TestErrorFormatting(t *testing.T) {
 		output string   // expected output
 	}{
 		"standard error wrapping with internal root cause (eris.New)": {
-			cause:  eris.New("root error", eris.CodeUnknown),
+			cause:  eris.New("root error").WithCode(eris.CodeUnknown),
 			input:  []string{"additional context", "even more context"},
 			output: "code(unknown) even more context: code(unknown) additional context: code(unknown) root error",
 		},
@@ -719,11 +719,11 @@ func TestStackFrames(t *testing.T) {
 		isWrapErr bool     // flag for wrap error
 	}{
 		"root error": {
-			cause:     eris.New("root error", eris.CodeUnknown),
+			cause:     eris.New("root error").WithCode(eris.CodeUnknown),
 			isWrapErr: false,
 		},
 		"wrapped error": {
-			cause:     eris.New("root error", eris.CodeUnknown),
+			cause:     eris.New("root error").WithCode(eris.CodeUnknown),
 			input:     []string{"additional context", "even more context"},
 			isWrapErr: true,
 		},

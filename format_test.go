@@ -26,7 +26,7 @@ func TestUnpack(t *testing.T) {
 			output: eris.UnpackedError{},
 		},
 		"standard error wrapping with internal root cause (eris.New)": {
-			cause: eris.New("root error", eris.CodeUnknown),
+			cause: eris.New("root error").WithCode(eris.CodeUnknown),
 			input: []string{"additional context", "even more context"},
 			output: eris.UnpackedError{
 				ErrRoot: eris.ErrRoot{
@@ -110,19 +110,19 @@ func TestFormatStr(t *testing.T) {
 		output string
 	}{
 		"basic root error": {
-			input:  eris.New("root error", eris.CodeUnknown),
+			input:  eris.New("root error").WithCode(eris.CodeUnknown),
 			output: "code(unknown) root error",
 		},
 		"basic wrapped error": {
 			input: eris.Wrap(
 				eris.Wrap(
-					eris.New("root error", eris.CodeAlreadyExists),
-					"additional context", eris.CodeInvalidArgument),
-				"even more context", eris.CodeInvalidArgument),
+					eris.New("root error").WithCode(eris.CodeAlreadyExists),
+					"additional context").WithCode(eris.CodeInvalidArgument),
+				"even more context").WithCode(eris.CodeInvalidArgument),
 			output: "code(invalid argument) even more context: code(invalid argument) additional context: code(already exists) root error",
 		},
 		"external wrapped error": {
-			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeUnknown),
+			input:  eris.Wrap(errors.New("external error"), "additional context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) additional context: external error",
 		},
 		"external error": {
@@ -131,15 +131,15 @@ func TestFormatStr(t *testing.T) {
 		},
 		// This is the expected behavior, since this error does not hold any information
 		"empty error": {
-			input:  eris.New("", eris.CodeUnknown),
+			input:  eris.New("").WithCode(eris.CodeUnknown),
 			output: "",
 		},
 		"empty wrapped external error": {
-			input:  eris.Wrap(errors.New(""), "additional context", eris.CodeUnknown),
+			input:  eris.Wrap(errors.New(""), "additional context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) additional context: ",
 		},
 		"empty wrapped error": {
-			input:  eris.Wrap(eris.New("", eris.CodeUnknown), "additional context", eris.CodeUnknown),
+			input:  eris.Wrap(eris.New("").WithCode(eris.CodeUnknown), "additional context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) additional context: ",
 		},
 		// TODO: add tests for KVs and err code
@@ -161,12 +161,12 @@ func TestInvertedFormatStr(t *testing.T) {
 		output string
 	}{
 		"basic wrapped error": {
-			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeUnknown), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
+			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodeUnknown), "additional context").WithCode(eris.CodeUnknown), "even more context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) root error: code(unknown) additional context: code(unknown) even more context",
 		},
 		// TODO: Is this the expected behavior? Should an external error have a default code unknown?
 		"external wrapped error": {
-			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeUnknown),
+			input:  eris.Wrap(errors.New("external error"), "additional context").WithCode(eris.CodeUnknown),
 			output: "external error: code(unknown) additional context",
 		},
 		"external error": {
@@ -174,11 +174,11 @@ func TestInvertedFormatStr(t *testing.T) {
 			output: "external error code(canceled) ",
 		},
 		"empty wrapped external error": {
-			input:  eris.Wrap(errors.New("some err"), "additional context", eris.CodeUnknown),
+			input:  eris.Wrap(errors.New("some err"), "additional context").WithCode(eris.CodeUnknown),
 			output: "some err: code(unknown) additional context",
 		},
 		"empty wrapped error": {
-			input:  eris.Wrap(eris.New("err", eris.CodeUnknown), "additional context", eris.CodeUnknown),
+			input:  eris.Wrap(eris.New("err").WithCode(eris.CodeUnknown), "additional context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) err: code(unknown) additional context",
 		},
 	}
@@ -197,21 +197,12 @@ func TestInvertedFormatStr(t *testing.T) {
 }
 
 func TestFormatJSONwithKVs(t *testing.T) {
-	simpleKVs := map[string]any{
-		"key":  "value",
-		"key2": 2,
-		"key3": true,
-		"key4": []string{"a", "b", "c"},
-	}
-
-	KVsObjNoJson := map[string]any{
-		"obj": struct {
-			a string
-			b int
-		}{
-			a: "a",
-			b: 1,
-		},
+	nonSerializableObj := struct {
+		a string
+		b int
+	}{
+		a: "a",
+		b: 1,
 	}
 
 	serializableObj := struct {
@@ -220,16 +211,6 @@ func TestFormatJSONwithKVs(t *testing.T) {
 	}{
 		A: "aVal",
 		B: 1,
-	}
-	KVsObjJson := map[string]any{
-		"obj": serializableObj,
-	}
-
-	intVal := 1
-	ptrKVs := map[string]any{
-		"nullPtr": nil,
-		"intPtr":  &intVal,
-		"objPtr":  &KVsObjJson,
 	}
 
 	// TODO: valid kvs with custom object that can be serialized
@@ -243,24 +224,24 @@ func TestFormatJSONwithKVs(t *testing.T) {
 		output string
 	}{
 		"basic root error + simple kvs": {
-			input:  eris.New_with_KVs("root error", eris.CodeCanceled, simpleKVs),
-			output: `{"root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"canceled","message":"root error"}}`,
+			input:  eris.New("root error").WithCode(eris.CodeCanceled).WithProperty("key", "value"),
+			output: `{"root":{"KVs":{"key":"value"},"code":"canceled","message":"root error"}}`,
 		},
-		"basic wrapped error + kvs with obj w/o serializer": {
-			input:  eris.Wrap_with_KVs(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjNoJson), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown, ptrKVs),
-			output: `{"root":{"KVs":{"obj":{}},"code":"not found","message":"root error"},"wrap":[{"KVs":{"intPtr":1,"nullPtr":null,"objPtr":{"obj":{"a":"aVal","b":1}}},"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+		"basic wrapped error + kvs with objects": {
+			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodeNotFound).WithProperty("obj", nonSerializableObj), "additional context").WithCode(eris.CodeAlreadyExists).WithProperty("obj", serializableObj), "outer error"),
+			output: `{"root":{"KVs":{"obj":{}},"code":"not found","message":"root error"},"wrap":[{"code":"internal","message":"outer error"},{"KVs":{"obj":{"a":"aVal","b":1}},"code":"already exists","message":"additional context"}]}`,
 		},
-		"basic wrapped error + kvs with obj w serializer": {
-			input:  eris.Wrap(eris.Wrap_with_KVs(eris.New_with_KVs("root error", eris.CodeNotFound, KVsObjJson), "additional context", eris.CodeAlreadyExists, KVsObjNoJson), "even more context", eris.CodeUnknown),
-			output: `{"root":{"KVs":{"obj":{"a":"aVal","b":1}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"KVs":{"obj":{}},"code":"already exists","message":"additional context"}]}`,
+		"basic wrapped error + kvs with objects 2": {
+			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodeNotFound).WithProperty("obj", serializableObj), "additional context"), "outer error"),
+			output: `{"root":{"KVs":{"obj":{"a":"aVal","b":1}},"code":"not found","message":"root error"},"wrap":[{"code":"internal","message":"outer error"},{"code":"internal","message":"additional context"}]}`,
 		},
 		"basic wrapped error + ptr kvs": {
-			input:  eris.Wrap(eris.Wrap(eris.New_with_KVs("root error", eris.CodeNotFound, ptrKVs), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
-			output: `{"root":{"KVs":{"intPtr":1,"nullPtr":null,"objPtr":{"obj":{"a":"aVal","b":1}}},"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
+			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithProperty("ptr", nil), "additional context"), "even more context"),
+			output: `{"root":{"KVs":{"ptr":null},"code":"unknown","message":"root error"},"wrap":[{"code":"internal","message":"even more context"},{"code":"internal","message":"additional context"}]}`,
 		},
 		"external error + valid kvs": {
-			input:  eris.Wrap_with_KVs(errors.New("external error"), "additional context", eris.CodeNotFound, simpleKVs),
-			output: `{"external":"external error","root":{"KVs":{"key":"value","key2":2,"key3":true,"key4":["a","b","c"]},"code":"not found","message":"additional context"}}`,
+			input:  eris.Wrap(errors.New("external error"), "additional context").WithCode(eris.CodeNotFound),
+			output: `{"external":"external error","root":{"code":"not found","message":"additional context"}}`,
 		},
 	}
 
@@ -281,15 +262,15 @@ func TestFormatJSON(t *testing.T) {
 		output string
 	}{
 		"basic root error": {
-			input:  eris.New("root error", eris.CodeCanceled),
+			input:  eris.New("root error").WithCode(eris.CodeCanceled),
 			output: `{"root":{"code":"canceled","message":"root error"}}`,
 		},
 		"basic wrapped error": {
-			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeNotFound), "additional context", eris.CodeAlreadyExists), "even more context", eris.CodeUnknown),
+			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodeNotFound), "additional context").WithCode(eris.CodeAlreadyExists), "even more context").WithCode(eris.CodeUnknown),
 			output: `{"root":{"code":"not found","message":"root error"},"wrap":[{"code":"unknown","message":"even more context"},{"code":"already exists","message":"additional context"}]}`,
 		},
 		"external error": {
-			input:  eris.Wrap(errors.New("external error"), "additional context", eris.CodeDataLoss),
+			input:  eris.Wrap(errors.New("external error"), "additional context").WithCode(eris.CodeDataLoss),
 			output: `{"external":"external error","root":{"code":"data loss","message":"additional context"}}`,
 		},
 	}
@@ -309,7 +290,7 @@ func TestInvertedFormatJSON(t *testing.T) {
 		output string
 	}{
 		"basic wrapped error": {
-			input:  eris.Wrap(eris.Wrap(eris.New("root error", eris.CodeAlreadyExists), "additional context", eris.CodeUnknown), "even more context", eris.CodeUnknown),
+			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodeAlreadyExists), "additional context").WithCode(eris.CodeUnknown), "even more context").WithCode(eris.CodeUnknown),
 			output: `{"root":{"code":"already exists","message":"root error"},"wrap":[{"code":"unknown","message":"additional context"},{"code":"unknown","message":"even more context"}]}`,
 		},
 	}
@@ -333,7 +314,7 @@ func TestFormatJSONWithStack(t *testing.T) {
 		wrapOutput []map[string]any
 	}{
 		"basic wrapped error": {
-			input: eris.Wrap(eris.Wrap(eris.New("root error", eris.CodePermissionDenied), "additional context", eris.CodeUnavailable), "even more context", eris.CodeUnknown),
+			input: eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodePermissionDenied), "additional context").WithCode(eris.CodeUnavailable), "even more context").WithCode(eris.CodeUnknown),
 			rootOutput: map[string]any{
 				"code":    "permission denied",
 				"message": "root error",

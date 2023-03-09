@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	errEOF = eris.New("unexpected EOF", eris.CodeUnknown)
+	errEOF = eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
 	errExt = errors.New("external error")
 )
 
@@ -30,7 +30,7 @@ var (
 func ReadFile(fname string, global bool, external bool) error {
 	var err error
 	if !external && !global { // local eris
-		err = eris.New("unexpected EOF", eris.CodeUnknown)
+		err = eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
 	} else if !external && global { // global eris
 		err = errEOF
 	} else if external && !global { // local external
@@ -38,7 +38,7 @@ func ReadFile(fname string, global bool, external bool) error {
 	} else { // global external
 		err = fmt.Errorf("external context: %w", errExt)
 	}
-	return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname)
+	return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 }
 
 // example func that just catches and returns an error.
@@ -55,7 +55,7 @@ func ProcessFile(fname string, global bool, external bool) error {
 	// parse the file
 	err := ParseFile(fname, global, external)
 	if err != nil {
-		return eris.Wrapf(err, eris.CodeUnknown, "error processing file '%v'", fname)
+		return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeUnknown)
 	}
 	return nil
 }
@@ -189,7 +189,7 @@ func TestGoRoutines(t *testing.T) {
 
 	go func() {
 		err := dummyStack()
-		err = eris.Wrap(err, "error reading file", eris.CodeUnknown)
+		err = eris.Wrap(err, "error reading file").WithCode(eris.CodeUnknown)
 
 		// verify the stack frames match expected values
 		uerr := eris.Unpack(err)
@@ -201,5 +201,5 @@ func TestGoRoutines(t *testing.T) {
 }
 
 func dummyStack() error {
-	return eris.New("unexpected EOF", eris.CodeUnknown)
+	return eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
 }

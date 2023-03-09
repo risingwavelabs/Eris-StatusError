@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrUnexpectedEOF          = eris.New("unexpected EOF", eris.CodeUnknown)
+	ErrUnexpectedEOF          = eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
 	FormattedErrUnexpectedEOF = eris.Errorf("unexpected %v", eris.CodeUnknown, "EOF")
 )
 
@@ -46,7 +46,7 @@ func TestExampleToJSON_external(t *testing.T) {
 func ExampleToJSON_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(ErrUnexpectedEOF, eris.CodeUnknown, "error reading file '%v'", fname) // line 6
+		return eris.Wrapf(ErrUnexpectedEOF, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 	}
 
 	// example func that catches and returns an error without modification
@@ -95,7 +95,7 @@ func TestExampleToJSON_global(t *testing.T) {
 func ExampleToJSON_local() {
 	// example func that returns an eris error
 	readFile := func(fname string) error {
-		return eris.New("unexpected EOF", eris.CodeUnknown) // line 3
+		return eris.New("unexpected EOF").WithCode(eris.CodeUnknown) // line 3
 	}
 
 	// example func that catches an error and wraps it with additional context
@@ -103,7 +103,7 @@ func ExampleToJSON_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname) // line 11
+			return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -123,7 +123,7 @@ func ExampleToJSON_local() {
 		// process the file
 		err := processFile(fname) // line 29
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error printing file '%v'", fname) // line 31
+			return eris.Wrapf(err, "error printing file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -194,7 +194,7 @@ func TestExampleToString_external(t *testing.T) {
 func ExampleToString_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(FormattedErrUnexpectedEOF, eris.CodeUnknown, "error reading file '%v'", fname) // line 6
+		return eris.Wrapf(FormattedErrUnexpectedEOF, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 	}
 
 	// example func that catches and returns an error without modification
@@ -212,7 +212,7 @@ func ExampleToString_global() {
 		// parse the file
 		err := parseFile(fname) // line 22
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error processing file '%v'", fname) // line 24
+			return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -252,7 +252,7 @@ func TestExampleToString_global(t *testing.T) {
 func ExampleToString_local() {
 	// example func that returns an eris error
 	readFile := func(fname string) error {
-		return eris.New("unexpected EOF", eris.CodeUnknown) // line 3
+		return eris.New("unexpected EOF").WithCode(eris.CodeUnknown) // line 3
 	}
 
 	// example func that catches an error and wraps it with additional context
@@ -260,7 +260,7 @@ func ExampleToString_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, eris.CodeUnknown, "error reading file '%v'", fname) // line 11
+			return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -295,15 +295,15 @@ func TestExampleToString_local(t *testing.T) {
 }
 
 func f() error {
-	return eris.New("error message", eris.CodeDeadlineExceeded)
+	return eris.New("error message").WithCode(eris.CodeDeadlineExceeded)
 }
 
 func g() error {
-	return eris.Wrap(f(), "in function g", eris.CodeCanceled)
+	return eris.Wrap(f(), "in function g").WithCode(eris.CodeCanceled)
 }
 
 func h() error {
-	return eris.Wrap(g(), "in function h", eris.CodeAborted)
+	return eris.Wrap(g(), "in function h").WithCode(eris.CodeAborted)
 }
 
 func TestMainFunc(t *testing.T) {
