@@ -1,4 +1,4 @@
-// Package eris is an error handling library with readable stack traces and flexible formatting support.
+// Package eris is an error handling library with readable stack traces and flexible formatting support. We also support error codes
 package eris
 
 import (
@@ -39,18 +39,17 @@ func New(msg string) statusError {
 }
 
 // Errorf creates a new root error with a formatted message.
-func Errorf(format string, code Code, args ...any) error {
+func Errorf(format string, args ...any) statusError {
 	stack := callers(3)
 	return &rootError{
 		global: stack.isGlobal(),
 		msg:    fmt.Sprintf(format, args...),
 		stack:  stack,
-		code:   code,
+		code:   DEFAULT_ERROR_CODE_NEW,
 	}
 }
 
-// TODO: update this documentation
-// Wrap adds additional context to all error types while maintaining the type of the original error.
+// Wrap adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
 //
 // This method behaves differently for each error type. For root errors, the stack trace is reset to the current
 // callers which ensures traces are correct when using global/sentinel error values. Wrapped error types are simply
@@ -62,7 +61,7 @@ func Wrap(err error, msg string) statusError {
 	return wrap(err, fmt.Sprint(msg), DEFAULT_ERROR_CODE_WRAP)
 }
 
-// Wrapf adds additional context to all error types while maintaining the type of the original error.
+// Wrapf adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
 func Wrapf(err error, format string, args ...any) statusError {

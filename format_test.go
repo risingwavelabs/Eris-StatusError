@@ -58,7 +58,7 @@ func TestUnpack(t *testing.T) {
 			},
 		},
 		"no error wrapping with internal root cause (eris.Errorf)": {
-			cause: eris.Errorf("%v", eris.CodeUnknown, "root error"),
+			cause: eris.Errorf("%v", "root error").WithCode(eris.CodeUnknown),
 			output: eris.UnpackedError{
 				ErrRoot: eris.ErrRoot{
 					Msg: "root error",

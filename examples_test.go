@@ -11,7 +11,7 @@ import (
 
 var (
 	ErrUnexpectedEOF          = eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
-	FormattedErrUnexpectedEOF = eris.Errorf("unexpected %v", eris.CodeUnknown, "EOF")
+	FormattedErrUnexpectedEOF = eris.Errorf("unexpected %v", "EOF").WithCode(eris.CodeUnknown)
 )
 
 // Demonstrates JSON formatting of wrapped errors that originate from external (non-eris) error
