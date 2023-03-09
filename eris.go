@@ -7,12 +7,12 @@ import (
 	"reflect"
 )
 
-// TODO: Rename this interface?
-type chainingError interface {
+type statusError interface {
 	error
-	WithCode(Code) chainingError
-	WithProperty(string, any) chainingError
-	// Also add Code, GetKVs and HasKVs?
+	WithCode(Code) statusError
+	WithProperty(string, any) statusError
+	Code() Code
+	HasKVs() bool
 }
 
 // GetCode returns the error code. Defaults to unknown, if error does not have code.
@@ -28,7 +28,7 @@ func GetCode(err error) Code {
 }
 
 // New creates a new root error with a static message and an error code.
-func New(msg string) chainingError {
+func New(msg string) statusError {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &rootError{
 		global: stack.isGlobal(),
@@ -58,18 +58,18 @@ func Errorf(format string, code Code, args ...any) error {
 // attempts to unwrap them while building a new error chain. If an external type does not implement the unwrap
 // interface, it flattens the error and creates a new root error from it before wrapping with the additional
 // context.
-func Wrap(err error, msg string) chainingError {
+func Wrap(err error, msg string) statusError {
 	return wrap(err, fmt.Sprint(msg), DEFAULT_ERROR_CODE_WRAP)
 }
 
 // Wrapf adds additional context to all error types while maintaining the type of the original error.
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
-func Wrapf(err error, code Code, format string, args ...any) chainingError {
+func Wrapf(err error, code Code, format string, args ...any) statusError {
 	return wrap(err, fmt.Sprintf(format, args...), code)
 }
 
-func wrap(err error, msg string, code Code) chainingError {
+func wrap(err error, msg string, code Code) statusError {
 	if err == nil {
 		// Compiler needs to know concrete type in order to call functions of interface
 		var nilPtr *rootError
@@ -273,7 +273,7 @@ type rootError struct {
 }
 
 // WithCode sets the error code.
-func (e *rootError) WithCode(code Code) chainingError {
+func (e *rootError) WithCode(code Code) statusError {
 	if e == nil {
 		return nil
 	}
@@ -282,7 +282,7 @@ func (e *rootError) WithCode(code Code) chainingError {
 }
 
 // WithProperty adds a key-value pair to the error.
-func (e *rootError) WithProperty(key string, value any) chainingError {
+func (e *rootError) WithProperty(key string, value any) statusError {
 	if e == nil {
 		return nil
 	}
@@ -358,7 +358,7 @@ type wrapError struct {
 }
 
 // WithCode sets the error code.
-func (e *wrapError) WithCode(code Code) chainingError {
+func (e *wrapError) WithCode(code Code) statusError {
 	if e == nil {
 		return nil
 	}
@@ -367,7 +367,7 @@ func (e *wrapError) WithCode(code Code) chainingError {
 }
 
 // WithProperty adds a key-value pair to the error.
-func (e *wrapError) WithProperty(key string, value any) chainingError {
+func (e *wrapError) WithProperty(key string, value any) statusError {
 	if e == nil {
 		return nil
 	}
