@@ -1,13 +1,12 @@
 - [x] update unittests 
-- [ ] additional values `map[string]any`
+- [x] additional values `map[string]any`
 - [x] Additional status code field
 - [x] GH: Run unit tests on each commit
 - [ ] Update Readme 
-- [ ] Translation between gRPC err codes and our codes?
+- [x] Translation between gRPC err codes and our codes
 - [ ] Read code docs `make docs`
 - [ ] Read godoc docs
-- [ ] change API see below 
-- [ ] Change error codes to GRPC errors
+- [x] change API see below 
 
 tests: 
 test if map is printed 
