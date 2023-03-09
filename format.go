@@ -38,7 +38,6 @@ func NewDefaultStringFormat(options FormatOptions) StringFormat {
 	return stringFmt
 }
 
-// TODO: change this documentation comment. KVs and code
 // ToString returns a default formatted string for a given error.
 //
 // An error without trace will be formatted as follows:
@@ -52,6 +51,16 @@ func NewDefaultStringFormat(options FormatOptions) StringFormat {
 //	<Root error msg>
 //	  <Method2>:<File2>:<Line2>
 //	  <Method1>:<File1>:<Line1>
+//
+// Example:
+//
+//	rootCause := errors.New("external error")
+//	caller1 := eris.Wrap(rootCause, "no good").WithCode(eris.CodeDataLoss).WithProperty("foo", true).WithProperty("bar", 42)
+//	caller2 := eris.Wrap(caller1, "even more context")
+//
+// Without trace:
+//
+//	code(internal) even more context: code(data loss) KVs(map[bar:42 foo:true]) additional context: external error
 func ToString(err error, withTrace bool) string {
 	return ToCustomString(err, NewDefaultStringFormat(FormatOptions{
 		WithTrace:    withTrace,
@@ -59,7 +68,6 @@ func ToString(err error, withTrace bool) string {
 	}))
 }
 
-// TODO: change this documentation comment. KVs and code
 // ToCustomString returns a custom formatted string for a given error.
 //
 // To declare custom format, the Format object has to be passed as an argument.
@@ -74,6 +82,20 @@ func ToString(err error, withTrace bool) string {
 //	<Root error msg>[Format.MsgStackSep]
 //	[Format.PreStackSep]<Method2>[Format.StackElemSep]<File2>[Format.StackElemSep]<Line2>[Format.ErrorSep]
 //	[Format.PreStackSep]<Method1>[Format.StackElemSep]<File1>[Format.StackElemSep]<Line1>[Format.ErrorSep]
+//
+// Example:
+//
+//	rootCause := errors.New("external error")
+//	caller1 := eris.Wrap(rootCause, "no good").WithCode(eris.CodeDataLoss).WithProperty("foo", true).WithProperty("bar", 42)
+//	caller2 := eris.Wrap(caller1, "even more context")
+//
+// Formatted with
+//
+//	eris.NewDefaultStringFormat(eris.FormatOptions{WithExternal: true, InvertOutput: true})
+//
+// will result in
+//
+//	code(internal) even more context: code(data loss) KVs(map[bar:42 foo:true]) additional context: external error
 func ToCustomString(err error, format StringFormat) string {
 	upErr := Unpack(err)
 
@@ -127,38 +149,57 @@ func NewDefaultJSONFormat(options FormatOptions) JSONFormat {
 	}
 }
 
-// TODO: change this documentation comment. KVs and code
 // ToJSON returns a JSON formatted map for a given error.
 //
-// An error without trace will be formatted as follows:
+// Example error:
+//
+//	rootCause := errors.New("external error")
+//	caller1 := eris.Wrap(rootCause, "no good").WithCode(eris.CodeDataLoss).WithProperty("foo", true).WithProperty("bar", 42)
+//	caller2 := eris.Wrap(caller1, "even more context")
+//
+// The example error above without trace will be formatted as follows:
 //
 //	{
-//	  "root": {
-//	      "message": "Root error msg"
-//	  },
-//	  "wrap": [
-//	    {
-//	      "message": "Wrap error msg"
-//	    }
-//	  ]
+//	    "external": "external error",
+//	    "root": {
+//	        "KVs": {
+//	            "bar": 42,
+//	            "foo": true
+//	        },
+//	        "code": "data loss",
+//	        "message": "no good"
+//	    },
+//	    "wrap": [
+//	        {
+//	            "code": "internal",
+//	            "message": "even more context"
+//	        }
+//	    ]
 //	}
 //
-// An error with trace will be formatted as follows:
+// The example error above with trace will be formatted as follows:
 //
 //	{
-//	  "root": {
-//	    "message": "Root error msg",
-//	    "stack": [
-//	      "<Method2>:<File2>:<Line2>",
-//	      "<Method1>:<File1>:<Line1>"
+//	    "external": "external error",
+//	    "root": {
+//	        "KVs": {
+//	            "bar": 42,
+//	            "foo": true
+//	        },
+//	        "code": "data loss",
+//	        "message": "additional context",
+//	        "stack": [
+//	            "<Method1>:<File1>:<Line1>",
+//	            "<Method2>:<File2>:<Line2>"
+//	        ]
+//	    },
+//	    "wrap": [
+//	        {
+//	            "code": "internal",
+//	            "message": "even more context",
+//	            "stack": "<Method3>:<File3>:<Line3>"
+//	        }
 //	    ]
-//	  },
-//	  "wrap": [
-//	    {
-//	      "message": "Wrap error msg",
-//	      "stack": "<Method2>:<File2>:<Line2>"
-//	    }
-//	  ]
 //	}
 func ToJSON(err error, withTrace bool) map[string]any {
 	return ToCustomJSON(err, NewDefaultJSONFormat(FormatOptions{
@@ -167,7 +208,6 @@ func ToJSON(err error, withTrace bool) map[string]any {
 	}))
 }
 
-// TODO: change this documentation comment. KVs and code
 // ToCustomJSON returns a JSON formatted map for a given error.
 //
 // To declare custom format, the Format object has to be passed as an argument.
@@ -175,11 +215,13 @@ func ToJSON(err error, withTrace bool) map[string]any {
 //
 //	{
 //	  "root": {
+//	    "code": "unknown",
 //	    "message": "Root error msg",
 //	  },
 //	  "wrap": [
 //	    {
 //	      "message": "Wrap error msg'",
+//	      "code": "internal",
 //	    }
 //	  ]
 //	}
@@ -188,6 +230,7 @@ func ToJSON(err error, withTrace bool) map[string]any {
 //
 //	{
 //	  "root": {
+//	    "code": "unknown",
 //	    "message": "Root error msg",
 //	    "stack": [
 //	      "<Method2>[Format.StackElemSep]<File2>[Format.StackElemSep]<Line2>",
@@ -196,6 +239,7 @@ func ToJSON(err error, withTrace bool) map[string]any {
 //	  }
 //	  "wrap": [
 //	    {
+//	      "code": "internal",
 //	      "message": "Wrap error msg",
 //	      "stack": "<Method2>[Format.StackElemSep]<File2>[Format.StackElemSep]<Line2>"
 //	    }

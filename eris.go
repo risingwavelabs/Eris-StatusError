@@ -27,7 +27,7 @@ func GetCode(err error) Code {
 	return codeErr.Code()
 }
 
-// New creates a new root error with a static message and an error code.
+// New creates a new root error with a static message and an error code 'unknown'.
 func New(msg string) statusError {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &rootError{
@@ -38,7 +38,7 @@ func New(msg string) statusError {
 	}
 }
 
-// Errorf creates a new root error with a formatted message.
+// Errorf creates a new root error with a formatted message and an error code 'unknown'.
 func Errorf(format string, args ...any) statusError {
 	stack := callers(3)
 	return &rootError{
