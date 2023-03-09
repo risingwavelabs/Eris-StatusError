@@ -1,4 +1,4 @@
-module github.com/rotisserie/eris
+module github.com/risingwavelabs/Eris-StatusError
 
 go 1.18
 
