@@ -11,7 +11,7 @@ import (
 
 var (
 	ErrUnexpectedEOF          = eris.New("unexpected EOF").WithCode(eris.CodeUnknown)
-	FormattedErrUnexpectedEOF = eris.Errorf("unexpected %v", eris.CodeUnknown, "EOF")
+	FormattedErrUnexpectedEOF = eris.Errorf("unexpected %v", "EOF").WithCode(eris.CodeUnknown)
 )
 
 // Demonstrates JSON formatting of wrapped errors that originate from external (non-eris) error
@@ -64,21 +64,22 @@ func ExampleToJSON_global() {
 	u, _ := json.MarshalIndent(eris.ToJSON(err, true), "", "\t") // true: include stack trace
 	fmt.Printf("%v\n", string(u))
 
-	// example output:
 	// {
-	//   "root": {
-	//     "message": "unexpected EOF",
-	//     "stack": [
-	//       "main.main:.../example/main.go:20",
-	//       "main.parseFile:.../example/main.go:12",
-	//       "main.readFile:.../example/main.go:6"
+	//  "root": {
+	//      "code": "unknown",
+	//      "message": "unexpected EOF",
+	//      "stack": [
+	//          "main.main:.../example/main.go:20",
+	//          "main.parseFile:.../example/main.go:12",
+	//          "main.readFile:.../example/main.go:6"
 	//     ]
-	//   },
-	//   "wrap": [
-	//     {
-	//       "message": "error reading file 'example.json'",
-	//       "stack": "main.readFile:.../example/main.go:6"
-	//     }
+	//  },
+	//  "wrap": [
+	//      {
+	//          "code": "unknown",
+	//          "message": "error reading file 'example.json'",
+	//          "stack": "main.readFile:.../example/main.go:6"
+	//      }
 	//   ]
 	// }
 }
@@ -136,25 +137,28 @@ func ExampleToJSON_local() {
 	// example output:
 	// {
 	//   "root": {
-	//     "message": "unexpected EOF",
-	//     "stack": [
-	//       "main.main:.../example/main.go:37",
-	//       "main.printFile:.../example/main.go:31",
-	//       "main.printFile:.../example/main.go:29",
-	//       "main.processFile:.../example/main.go:19",
-	//       "main.parseFile:.../example/main.go:11",
-	//       "main.parseFile:.../example/main.go:9",
-	//       "main.readFile:.../example/main.go:3"
-	//     ]
-	//   },
-	//   "wrap": [
-	//     {
-	//       "message": "error printing file 'example.json'",
-	//       "stack": "main.printFile:.../example/main.go:31"
-	//     },
-	//     {
-	//       "message": "error reading file 'example.json'",
-	//       "stack": "main.parseFile: .../example/main.go: 11"
+	//      "code": "unknown",
+	//      "message": "unexpected EOF",
+	//      "stack": [
+	//          "main.main:.../example/main.go:37",
+	//          "main.printFile:.../example/main.go:31",
+	//          "main.printFile:.../example/main.go:29",
+	//          "main.processFile:.../example/main.go:19",
+	//          "main.parseFile:.../example/main.go:11",
+	//          "main.parseFile:.../example/main.go:9",
+	//          "main.readFile:.../example/main.go:3"
+	//      ]
+	//  },
+	//  "wrap": [
+	//	    {
+	//          "code": "unknown",
+	//          "message": "error printing file 'example.json'",
+	//          "message": "error printing file 'example.json'",
+	//      },
+	//      {
+	//          "code": "unknown",
+	//          "message": "error reading file 'example.json'",
+	//          "stack": "main.parseFile: .../example/main.go: 11"
 	//     }
 	//   ]
 	// }
@@ -194,7 +198,7 @@ func TestExampleToString_external(t *testing.T) {
 func ExampleToString_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(FormattedErrUnexpectedEOF, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
+		return eris.Wrapf(FormattedErrUnexpectedEOF, "error reading file '%v'", fname).WithProperty("file", fname)
 	}
 
 	// example func that catches and returns an error without modification
@@ -212,7 +216,7 @@ func ExampleToString_global() {
 		// parse the file
 		err := parseFile(fname) // line 22
 		if err != nil {
-			return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeUnknown)
+			return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeDeadlineExceeded)
 		}
 		return nil
 	}
@@ -229,10 +233,12 @@ func ExampleToString_global() {
 	// unpack and print the error via uerr.ToString(...)
 	fmt.Printf("%v\n", eris.ToString(err, true)) // true: include stack trace
 
-	// example output:
-	// error reading file 'example.json'
+	// code(deadline exceeded) error processing file 'example.json': code(internal) KVs(map[file:example.json]) error reading file 'example.json': code(unknown) unexpected EOF
+	// code(deadline exceeded) error processing file 'example.json'
 	//   main.readFile:.../example/main.go:6
-	// unexpected EOF
+	// code(internal) KVs(map[file:example.json]) error reading file 'example.json'
+	//   main.readFunc:.../example/main.go:1
+	// code(unknown) unexpected EOF
 	//   main.main:.../example/main.go:30
 	//   main.processFile:.../example/main.go:24
 	//   main.processFile:.../example/main.go:22
@@ -252,7 +258,7 @@ func TestExampleToString_global(t *testing.T) {
 func ExampleToString_local() {
 	// example func that returns an eris error
 	readFile := func(fname string) error {
-		return eris.New("unexpected EOF").WithCode(eris.CodeUnknown) // line 3
+		return eris.New("unexpected EOF").WithCode(eris.CodeAborted) // line 3
 	}
 
 	// example func that catches an error and wraps it with additional context
@@ -260,7 +266,7 @@ func ExampleToString_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
+			return eris.Wrapf(err, "error reading file '%v'", fname).WithProperty("foo", "bar")
 		}
 		return nil
 	}
@@ -277,14 +283,14 @@ func ExampleToString_local() {
 	// unpack and print the error via uerr.ToString(...)
 	fmt.Println(eris.ToString(err, true)) // true: include stack trace
 
-	// example output:
-	// error reading file 'example.json'
-	//   main.parseFile:.../example/main.go:11
-	// unexpected EOF
-	//   main.main:.../example/main.go:17
-	//   main.parseFile:.../example/main.go:11
-	//   main.parseFile:.../example/main.go:9
-	//   main.readFile:.../example/main.go:3
+	// code(internal) KVs(map[foo:bar]) error reading file 'example.json': code(aborted) unexpected EOF
+	// code(internal) KVs(map[foo:bar]) error reading file 'example.json'
+	//     main.parseFile:.../example/main.go:11
+	// code(aborted) unexpected EOF
+	// 	main.main:.../example/main.go:17
+	//     main.parseFile:.../example/main.go:11
+	//     main.parseFile:.../example/main.go:9
+	//     main.readFile:.../example/main.go:3
 }
 
 func TestExampleToString_local(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 
 var (
 	globalErr          = eris.New("global error").WithCode(eris.CodeUnknown)
-	formattedGlobalErr = eris.Errorf("%v global error", eris.CodeUnknown, "formatted")
+	formattedGlobalErr = eris.Errorf("%v global error", "formatted").WithCode(eris.CodeUnknown)
 )
 
 type withMessage struct {
@@ -62,7 +62,6 @@ func setupTestCase(wrapf bool, cause error, input []string) error {
 }
 
 func TestDefaultCodes(t *testing.T) {
-	// TODO: Change this to defaults function calls
 	newErr := eris.New("some error").WithCode(eris.CodeUnknown)
 	errCode := eris.GetCode(newErr)
 	if errCode != eris.CodeUnknown {
@@ -101,12 +100,12 @@ func TestErrorWrapping(t *testing.T) {
 			output: "code(unknown) even more context: code(unknown) additional context: code(unknown) root error",
 		},
 		"standard error wrapping with a local root cause (eris.Errorf)": {
-			cause:  eris.Errorf("%v root error", eris.CodeUnknown, "formatted"),
+			cause:  eris.Errorf("%v root error", "formatted").WithCode(eris.CodeUnknown),
 			input:  []string{"additional context", "even more context"},
 			output: "code(unknown) even more context: code(unknown) additional context: code(unknown) formatted root error",
 		},
 		"no error wrapping with a local root cause (eris.Errorf)": {
-			cause:  eris.Errorf("%v root error", eris.CodeUnknown, "formatted"),
+			cause:  eris.Errorf("%v root error", "formatted").WithCode(eris.CodeUnknown),
 			output: "code(unknown) formatted root error",
 		},
 	}

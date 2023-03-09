@@ -58,7 +58,7 @@ func TestUnpack(t *testing.T) {
 			},
 		},
 		"no error wrapping with internal root cause (eris.Errorf)": {
-			cause: eris.Errorf("%v", eris.CodeUnknown, "root error"),
+			cause: eris.Errorf("%v", "root error").WithCode(eris.CodeUnknown),
 			output: eris.UnpackedError{
 				ErrRoot: eris.ErrRoot{
 					Msg: "root error",
@@ -142,7 +142,6 @@ func TestFormatStr(t *testing.T) {
 			input:  eris.Wrap(eris.New("").WithCode(eris.CodeUnknown), "additional context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) additional context: ",
 		},
-		// TODO: add tests for KVs and err code
 	}
 	for desc, tt := range tests {
 		// without trace
@@ -164,7 +163,6 @@ func TestInvertedFormatStr(t *testing.T) {
 			input:  eris.Wrap(eris.Wrap(eris.New("root error").WithCode(eris.CodeUnknown), "additional context").WithCode(eris.CodeUnknown), "even more context").WithCode(eris.CodeUnknown),
 			output: "code(unknown) root error: code(unknown) additional context: code(unknown) even more context",
 		},
-		// TODO: Is this the expected behavior? Should an external error have a default code unknown?
 		"external wrapped error": {
 			input:  eris.Wrap(errors.New("external error"), "additional context").WithCode(eris.CodeUnknown),
 			output: "external error: code(unknown) additional context",
@@ -212,12 +210,6 @@ func TestFormatJSONwithKVs(t *testing.T) {
 		A: "aVal",
 		B: 1,
 	}
-
-	// TODO: valid kvs with custom object that can be serialized
-	// TODO: valid kvs with custom serializer for obj
-	// TODO: Invalid kvs without serializer for obj
-
-	// TODO: What about serializing pointers?
 
 	tests := map[string]struct {
 		input  error

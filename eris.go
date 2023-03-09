@@ -1,4 +1,4 @@
-// Package eris is an error handling library with readable stack traces and flexible formatting support.
+// Package eris is an error handling library with readable stack traces and flexible formatting support. We also support error codes
 package eris
 
 import (
@@ -22,12 +22,12 @@ func GetCode(err error) Code {
 	}
 	codeErr, ok := err.(Coder)
 	if !ok {
-		return CodeUnknown
+		return DEFAULT_UNKNOWN_CODE
 	}
 	return codeErr.Code()
 }
 
-// New creates a new root error with a static message and an error code.
+// New creates a new root error with a static message and an error code 'unknown'.
 func New(msg string) statusError {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
 	return &rootError{
@@ -38,19 +38,18 @@ func New(msg string) statusError {
 	}
 }
 
-// Errorf creates a new root error with a formatted message.
-func Errorf(format string, code Code, args ...any) error {
+// Errorf creates a new root error with a formatted message and an error code 'unknown'.
+func Errorf(format string, args ...any) statusError {
 	stack := callers(3)
 	return &rootError{
 		global: stack.isGlobal(),
 		msg:    fmt.Sprintf(format, args...),
 		stack:  stack,
-		code:   code,
+		code:   DEFAULT_ERROR_CODE_NEW,
 	}
 }
 
-// TODO: update this documentation
-// Wrap adds additional context to all error types while maintaining the type of the original error.
+// Wrap adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
 //
 // This method behaves differently for each error type. For root errors, the stack trace is reset to the current
 // callers which ensures traces are correct when using global/sentinel error values. Wrapped error types are simply
@@ -62,7 +61,7 @@ func Wrap(err error, msg string) statusError {
 	return wrap(err, fmt.Sprint(msg), DEFAULT_ERROR_CODE_WRAP)
 }
 
-// Wrapf adds additional context to all error types while maintaining the type of the original error.
+// Wrapf adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
 func Wrapf(err error, format string, args ...any) statusError {
@@ -148,22 +147,22 @@ func eq(a, b error) bool {
 	var msgA, msgB string
 
 	if rootA, ok := a.(*rootError); ok {
-		kvA = rootA.KVs
+		kvA = rootA.kvs
 		codeA = rootA.code
 		msgA = rootA.msg
 	} else if wrapA, ok := a.(*wrapError); ok {
-		kvA = wrapA.KVs
+		kvA = wrapA.kvs
 		codeA = wrapA.code
 		msgA = wrapA.msg
 	}
 
 	if rootB, ok := b.(*rootError); ok {
-		kvB = rootB.KVs
+		kvB = rootB.kvs
 		codeB = rootB.code
 		msgB = rootB.msg
 	}
 	if wrapB, ok := b.(*wrapError); ok {
-		kvB = wrapB.KVs
+		kvB = wrapB.kvs
 		codeB = wrapB.code
 		msgB = wrapB.msg
 	}
@@ -269,7 +268,7 @@ type rootError struct {
 	ext    error  // error type for wrapping external errors
 	stack  *stack // root error stack trace
 	code   Code
-	KVs    map[string]any // TODO: KVs should be lower-case. no need to export this
+	kvs    map[string]any
 }
 
 // WithCode sets the error code.
@@ -286,10 +285,10 @@ func (e *rootError) WithProperty(key string, value any) statusError {
 	if e == nil {
 		return nil
 	}
-	if e.KVs == nil {
-		e.KVs = make(map[string]any)
+	if e.kvs == nil {
+		e.kvs = make(map[string]any)
 	}
-	e.KVs[key] = value
+	e.kvs[key] = value
 	return e
 }
 
@@ -300,12 +299,12 @@ func (e *rootError) Code() Code {
 
 // HasKVs returns true if the error has key-value pairs.
 func (e *rootError) HasKVs() bool {
-	return e.KVs != nil && len(e.KVs) > 0
+	return e.kvs != nil && len(e.kvs) > 0
 }
 
 // GetKVs returns the key-value pairs associated with the error.
 func (e *rootError) GetKVs() map[string]any {
-	return e.KVs
+	return e.kvs
 }
 
 func (e *rootError) Error() string {
@@ -317,13 +316,12 @@ func (e *rootError) Format(s fmt.State, verb rune) {
 	printError(e, s, verb)
 }
 
-// Is returns true if error messages in both errors are equivalent.
+// Is returns true if both errors have the same message and code. Ignores additional KV pairs.
 func (e *rootError) Is(target error) bool {
-	// TODO: Also check for error codes here?
 	if err, ok := target.(*rootError); ok {
-		return e.msg == err.msg
+		return e.msg == err.msg && e.code == err.code
 	}
-	return e.msg == target.Error()
+	return e.msg == target.Error() && e.code == DEFAULT_UNKNOWN_CODE
 }
 
 // As returns true if the error message in the target error is equivalent to the error message in the root error.
@@ -353,8 +351,8 @@ type wrapError struct {
 	msg   string // wrap error message
 	err   error  // error type representing the next error in the chain
 	frame *frame // wrap error stack frame
-	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
-	KVs   map[string]any
+	code  Code
+	kvs   map[string]any
 }
 
 // WithCode sets the error code.
@@ -371,10 +369,10 @@ func (e *wrapError) WithProperty(key string, value any) statusError {
 	if e == nil {
 		return nil
 	}
-	if e.KVs == nil {
-		e.KVs = make(map[string]any)
+	if e.kvs == nil {
+		e.kvs = make(map[string]any)
 	}
-	e.KVs[key] = value
+	e.kvs[key] = value
 	return e
 }
 
@@ -383,9 +381,9 @@ func (e *wrapError) Code() Code {
 	return e.code
 }
 
-// TODO: mark all HasKVs lower case? Do we need to expose this?
+// HasKVs returns true if the error has key-value pairs.
 func (e *wrapError) HasKVs() bool {
-	return e.KVs != nil && len(e.KVs) > 0
+	return e.kvs != nil && len(e.kvs) > 0
 }
 
 // Error returns the error message.
