@@ -1,5 +1,9 @@
 package eris
 
+import (
+	grpc "google.golang.org/grpc/codes"
+)
+
 // Code is an error code that indicates the category of error.
 type Code int
 
@@ -39,7 +43,6 @@ const (
 	CodeUnauthenticated
 )
 
-// TODO: rename this to grpc error codes.
 func (c Code) String() string {
 	if s, ok := defaultErrorCodes[c]; ok {
 		return s
@@ -74,3 +77,53 @@ const (
 	// Fallback code when you cannot determine what code it is.
 	DEFAULT_UNKNOWN_CODE = CodeUnknown
 )
+
+// FromGrpc converts a grpc code to an eris code.
+func FromGrpc(c grpc.Code) Code {
+	if resultCode, ok := map[grpc.Code]Code{
+		grpc.Aborted:            CodeAborted,
+		grpc.AlreadyExists:      CodeAlreadyExists,
+		grpc.Canceled:           CodeCanceled,
+		grpc.DataLoss:           CodeDataLoss,
+		grpc.DeadlineExceeded:   CodeDeadlineExceeded,
+		grpc.FailedPrecondition: CodeFailedPrecondition,
+		grpc.Internal:           CodeInternal,
+		grpc.InvalidArgument:    CodeInvalidArgument,
+		grpc.NotFound:           CodeNotFound,
+		grpc.OutOfRange:         CodeOutOfRange,
+		grpc.PermissionDenied:   CodePermissionDenied,
+		grpc.ResourceExhausted:  CodeResourceExhausted,
+		grpc.Unauthenticated:    CodeUnauthenticated,
+		grpc.Unavailable:        CodeUnavailable,
+		grpc.Unknown:            CodeUnknown,
+		grpc.Unimplemented:      CodeUnimplemented,
+	}[c]; ok {
+		return resultCode
+	}
+	return DEFAULT_UNKNOWN_CODE
+}
+
+// ToGRPC converts an eris code to a grpc code.
+func (c Code) ToGRPC() grpc.Code {
+	if grpcCode, ok := map[Code]grpc.Code{
+		CodeAborted:            grpc.Aborted,
+		CodeAlreadyExists:      grpc.AlreadyExists,
+		CodeCanceled:           grpc.Canceled,
+		CodeDataLoss:           grpc.DataLoss,
+		CodeDeadlineExceeded:   grpc.DeadlineExceeded,
+		CodeFailedPrecondition: grpc.FailedPrecondition,
+		CodeInternal:           grpc.Internal,
+		CodeInvalidArgument:    grpc.InvalidArgument,
+		CodeNotFound:           grpc.NotFound,
+		CodeOutOfRange:         grpc.OutOfRange,
+		CodePermissionDenied:   grpc.PermissionDenied,
+		CodeResourceExhausted:  grpc.ResourceExhausted,
+		CodeUnauthenticated:    grpc.Unauthenticated,
+		CodeUnavailable:        grpc.Unavailable,
+		CodeUnknown:            grpc.Unknown,
+		CodeUnimplemented:      grpc.Unimplemented,
+	}[c]; ok {
+		return grpcCode
+	}
+	return grpc.Unknown
+}
