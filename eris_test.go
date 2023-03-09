@@ -62,7 +62,6 @@ func setupTestCase(wrapf bool, cause error, input []string) error {
 }
 
 func TestDefaultCodes(t *testing.T) {
-	// TODO: Change this to defaults function calls
 	newErr := eris.New("some error").WithCode(eris.CodeUnknown)
 	errCode := eris.GetCode(newErr)
 	if errCode != eris.CodeUnknown {

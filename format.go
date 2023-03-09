@@ -237,13 +237,13 @@ func Unpack(err error) UnpackedError {
 			upErr.ErrRoot.Msg = err.msg
 			upErr.ErrRoot.Stack = err.stack.get()
 			upErr.ErrRoot.code = err.code
-			upErr.ErrRoot.KVs = err.KVs
+			upErr.ErrRoot.kvs = err.kvs
 		case *wrapError:
 			// prepend links in stack trace order
 			link := ErrLink{Msg: err.msg}
 			link.Frame = err.frame.get()
 			link.code = err.code
-			link.KVs = err.KVs
+			link.kvs = err.kvs
 			upErr.ErrChain = append([]ErrLink{link}, upErr.ErrChain...)
 		default:
 			upErr.ErrExternal = err
@@ -278,7 +278,7 @@ type ErrRoot struct {
 	Msg   string
 	Stack Stack
 	code  Code
-	KVs   map[string]any // TODO: do not expose kvs field in the different error types?
+	kvs   map[string]any // TODO: do not expose kvs field in the different error types?
 }
 
 // Code returns the error code.
@@ -288,15 +288,15 @@ func (err *ErrRoot) Code() Code {
 
 // HasKVs returns true if the error has key-value pairs.
 func (err *ErrRoot) HasKVs() bool {
-	return err.KVs != nil && len(err.KVs) > 0
+	return err.kvs != nil && len(err.kvs) > 0
 }
 
 // String formatter for root errors.
 func (err *ErrRoot) formatStr(format StringFormat) string {
 
 	kvs := ""
-	if len(err.KVs) > 0 {
-		kvs = fmt.Sprintf(" KVs(%v)", err.KVs)
+	if len(err.kvs) > 0 {
+		kvs = fmt.Sprintf(" KVs(%v)", err.kvs)
 	}
 
 	// Do not print default errors
@@ -323,7 +323,7 @@ func (err *ErrRoot) formatJSON(format JSONFormat) map[string]any {
 	rootMap["code"] = err.code.String()
 	rootMap["message"] = err.Msg
 	if err.HasKVs() {
-		rootMap["KVs"] = err.KVs // TODO: debugging notes we lost the object at this point
+		rootMap["KVs"] = err.kvs // TODO: debugging notes we lost the object at this point
 	}
 	if format.Options.WithTrace {
 		rootMap["stack"] = err.Stack.format(format.StackElemSep, format.Options.InvertTrace)
@@ -336,7 +336,7 @@ type ErrLink struct {
 	Msg   string
 	Frame StackFrame
 	code  Code
-	KVs   map[string]any
+	kvs   map[string]any
 }
 
 // Code returns the error code.
@@ -346,14 +346,14 @@ func (eLink *ErrLink) Code() Code {
 
 // HasKVs returns true if the error has key-value pairs.
 func (eLink *ErrLink) HasKVs() bool {
-	return eLink.KVs != nil && len(eLink.KVs) > 0
+	return eLink.kvs != nil && len(eLink.kvs) > 0
 }
 
 // String formatter for wrap errors chains.
 func (eLink *ErrLink) formatStr(format StringFormat) string {
 	kvs := ""
-	if len(eLink.KVs) > 0 {
-		kvs = fmt.Sprintf(" KVs(%v)", eLink.KVs)
+	if len(eLink.kvs) > 0 {
+		kvs = fmt.Sprintf(" KVs(%v)", eLink.kvs)
 	}
 	str := fmt.Sprintf("code(%s)%s %s%s", eLink.code.String(), kvs, eLink.Msg, format.MsgStackSep)
 	if format.Options.WithTrace {
@@ -368,7 +368,7 @@ func (eLink *ErrLink) formatJSON(format JSONFormat) map[string]any {
 	wrapMap["code"] = eLink.code.String()
 	wrapMap["message"] = fmt.Sprint(eLink.Msg)
 	if eLink.HasKVs() {
-		wrapMap["KVs"] = eLink.KVs
+		wrapMap["KVs"] = eLink.kvs
 	}
 	if format.Options.WithTrace {
 		wrapMap["stack"] = eLink.Frame.format(format.StackElemSep)

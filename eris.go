@@ -148,22 +148,22 @@ func eq(a, b error) bool {
 	var msgA, msgB string
 
 	if rootA, ok := a.(*rootError); ok {
-		kvA = rootA.KVs
+		kvA = rootA.kvs
 		codeA = rootA.code
 		msgA = rootA.msg
 	} else if wrapA, ok := a.(*wrapError); ok {
-		kvA = wrapA.KVs
+		kvA = wrapA.kvs
 		codeA = wrapA.code
 		msgA = wrapA.msg
 	}
 
 	if rootB, ok := b.(*rootError); ok {
-		kvB = rootB.KVs
+		kvB = rootB.kvs
 		codeB = rootB.code
 		msgB = rootB.msg
 	}
 	if wrapB, ok := b.(*wrapError); ok {
-		kvB = wrapB.KVs
+		kvB = wrapB.kvs
 		codeB = wrapB.code
 		msgB = wrapB.msg
 	}
@@ -269,7 +269,7 @@ type rootError struct {
 	ext    error  // error type for wrapping external errors
 	stack  *stack // root error stack trace
 	code   Code
-	KVs    map[string]any // TODO: KVs should be lower-case. no need to export this
+	kvs    map[string]any
 }
 
 // WithCode sets the error code.
@@ -286,10 +286,10 @@ func (e *rootError) WithProperty(key string, value any) statusError {
 	if e == nil {
 		return nil
 	}
-	if e.KVs == nil {
-		e.KVs = make(map[string]any)
+	if e.kvs == nil {
+		e.kvs = make(map[string]any)
 	}
-	e.KVs[key] = value
+	e.kvs[key] = value
 	return e
 }
 
@@ -300,12 +300,12 @@ func (e *rootError) Code() Code {
 
 // HasKVs returns true if the error has key-value pairs.
 func (e *rootError) HasKVs() bool {
-	return e.KVs != nil && len(e.KVs) > 0
+	return e.kvs != nil && len(e.kvs) > 0
 }
 
 // GetKVs returns the key-value pairs associated with the error.
 func (e *rootError) GetKVs() map[string]any {
-	return e.KVs
+	return e.kvs
 }
 
 func (e *rootError) Error() string {
@@ -354,7 +354,7 @@ type wrapError struct {
 	err   error  // error type representing the next error in the chain
 	frame *frame // wrap error stack frame
 	code  Code   // TODO: do we use this code or do we only ever use it in errLink?
-	KVs   map[string]any
+	kvs   map[string]any
 }
 
 // WithCode sets the error code.
@@ -371,10 +371,10 @@ func (e *wrapError) WithProperty(key string, value any) statusError {
 	if e == nil {
 		return nil
 	}
-	if e.KVs == nil {
-		e.KVs = make(map[string]any)
+	if e.kvs == nil {
+		e.kvs = make(map[string]any)
 	}
-	e.KVs[key] = value
+	e.kvs[key] = value
 	return e
 }
 
@@ -385,7 +385,7 @@ func (e *wrapError) Code() Code {
 
 // TODO: mark all HasKVs lower case? Do we need to expose this?
 func (e *wrapError) HasKVs() bool {
-	return e.KVs != nil && len(e.KVs) > 0
+	return e.kvs != nil && len(e.kvs) > 0
 }
 
 // Error returns the error message.
