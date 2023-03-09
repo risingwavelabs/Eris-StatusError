@@ -22,7 +22,7 @@ func GetCode(err error) Code {
 	}
 	codeErr, ok := err.(Coder)
 	if !ok {
-		return CodeUnknown
+		return DEFAULT_UNKNOWN_CODE
 	}
 	return codeErr.Code()
 }

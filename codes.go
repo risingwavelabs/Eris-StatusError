@@ -71,6 +71,6 @@ const (
 	DEFAULT_ERROR_CODE_NEW = CodeUnknown
 	// Default error code assigned when using eris.Wrap or Wrapf.
 	DEFAULT_ERROR_CODE_WRAP = CodeInternal
+	// Fallback code when you cannot determine what code it is.
+	DEFAULT_UNKNOWN_CODE = CodeUnknown
 )
-
-// TODO Functions should use default code in default cases and never actual codes directly.
