@@ -6,7 +6,7 @@
 - [x] Read godoc docs
 - [x] change API see below 
 - [x] Update Readme 
-- [ ] Check any mention of rotisserie
+- [X] Check any mention of rotisserie
 
 
 tests: 
