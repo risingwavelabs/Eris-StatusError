@@ -13,6 +13,7 @@ type statusError interface {
 	WithProperty(string, any) statusError
 	Code() Code
 	HasKVs() bool
+	KVs() map[string]any
 }
 
 // GetCode returns the error code. Defaults to unknown, if error does not have code.
@@ -271,6 +272,14 @@ type rootError struct {
 	kvs    map[string]any
 }
 
+// KVs returns the key-value pairs associated with the error.
+func (e *rootError) KVs() map[string]any {
+	if e.kvs == nil {
+		return make(map[string]any)
+	}
+	return e.kvs
+}
+
 // WithCode sets the error code.
 func (e *rootError) WithCode(code Code) statusError {
 	if e == nil {
@@ -353,6 +362,14 @@ type wrapError struct {
 	frame *frame // wrap error stack frame
 	code  Code
 	kvs   map[string]any
+}
+
+// KVs returns the key-value pairs associated with the error.
+func (e *wrapError) KVs() map[string]any {
+	if e.kvs == nil {
+		return make(map[string]any)
+	}
+	return e.kvs
 }
 
 // WithCode sets the error code.

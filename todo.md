@@ -5,7 +5,9 @@
 - [x] Translation between gRPC err codes and our codes
 - [x] Read godoc docs
 - [x] change API see below 
-- [ ] Update Readme 
+- [x] Update Readme 
+- [ ] Check any mention of rotisserie
+
 
 tests: 
 test if map is printed 

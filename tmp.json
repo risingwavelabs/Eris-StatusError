@@ -1,0 +1,22 @@
+{
+    "external": "external error",
+    "root": {
+        "KVs": {
+            "bar": 42,
+            "foo": true
+        },
+        "code": "data loss",
+        "message": "no good",
+        "stack": [
+            "eris_test.TestMain:/Users/janmensch/Documents/github/StatusError/format_test.go:370",
+            "eris_test.TestMain:/Users/janmensch/Documents/github/StatusError/format_test.go:369"
+        ]
+    },
+    "wrap": [
+        {
+            "code": "internal",
+            "message": "even more context",
+            "stack": "eris_test.TestMain:/Users/janmensch/Documents/github/StatusError/format_test.go:370"
+        }
+    ]
+}
