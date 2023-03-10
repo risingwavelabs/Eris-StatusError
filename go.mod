@@ -1,4 +1,4 @@
-module github.com/rotisserie/eris
+module github.com/risingwavelabs/eris
 
 go 1.18
 
