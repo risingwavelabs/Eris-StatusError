@@ -1,93 +1,96 @@
-# New lib that combines ERIS with status codes 
-
-
-WORK IN PROGRESS. DO NOT USE!
-
-
-# eris ![Logo][eris-logo]
+# Eris with status codes ![Logo][eris-logo]
 
 [![GoDoc][doc-img]][doc] [![Build][ci-img]][ci] [![GoReport][report-img]][report] [![Coverage Status][cov-img]][cov]
 
-Package `eris` is an error handling library with readable stack traces and flexible formatting support.
+Package `eris with status codes` is an error handling library with readable stack traces, flexible formatting support, error codes and custom key-value pairs.
 
-`go get github.com/rotisserie/eris`
+`go get github.com/risingwavelabs/eris`
 
 <!-- toc -->
 
-- [New lib that combines ERIS with status codes](#new-lib-that-combines-eris-with-status-codes)
-- [eris ](#eris-)
-  - [Why you should switch to eris](#why-you-should-switch-to-eris)
-  - [Using eris](#using-eris)
+- [Eris with status codes ](#eris-with-status-codes-)
+  - [Why you should switch from eris to eris with status codes](#why-you-should-switch-from-eris-to-eris-with-status-codes)
+  - [Status codes](#status-codes)
+  - [Using eris with status codes](#using-eris-with-status-codes)
     - [Creating errors](#creating-errors)
     - [Wrapping errors](#wrapping-errors)
-    - [Formatting and logging errors](#formatting-and-logging-errors)
-    - [Interpreting eris stack traces](#interpreting-eris-stack-traces)
-    - [Inverting the stack trace and error output](#inverting-the-stack-trace-and-error-output)
-    - [Inspecting errors](#inspecting-errors)
-    - [Formatting with custom separators](#formatting-with-custom-separators)
-    - [Writing a custom output format](#writing-a-custom-output-format)
-    - [Sending error traces to Sentry](#sending-error-traces-to-sentry)
-  - [Comparison to other packages (e.g. pkg/errors)](#comparison-to-other-packages-eg-pkgerrors)
-    - [Error formatting and stack traces](#error-formatting-and-stack-traces)
-  - [Migrating to eris](#migrating-to-eris)
-  - [Contributing](#contributing)
+  - [Handling errors](#handling-errors)
 
 <!-- tocstop -->
 
-## Why you should switch to eris
+## Why you should switch from eris to eris with status codes
 
-This package was inspired by a simple question: what if you could fix a bug without wasting time replicating the issue or digging through the code? With that in mind, this package is designed to give you more control over error handling via error wrapping, stack tracing, and output formatting.
+Eris with status codes is build on top of [rotisserie/eris](https://github.com/rotisserie/eris). A error handling library that enables you to write errors in JSON form and to wrap errors easily.  
 
-The [example](https://github.com/rotisserie/eris/blob/master/examples/logging/example.go) that generated the output below simulates a realistic error handling scenario and demonstrates how to wrap and log errors with minimal effort. This specific error occurred because a user tried to access a file that can't be located, and the output shows a clear path from the top of the call stack to the source.
+We extended the error library to include a status code and additional custom parameters that you can set during error handling. We aim for `eris` to be compatible with `rotisserie/eris`. At the time of this writing you can use our `eris` as a drop-in replacement fro `rotisserie/eris`.
+
+This document will focus on the extension of `rotisserie/eris`. Please have a look at the [rotisserie/eris README](https://github.com/rotisserie/eris) for information about basic functionalities of this library, or just view our [pkg documentation](https://pkg.go.dev/github.com/risingwavelabs/eris@v0.0.0-20230309150549-b35f50e98d1a#section-readme)
 
 ```json
 {
-  "error":{
-    "root":{
-      "message":"error internal server",
-      "stack":[
-        "main.main:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:143",
-        "main.ProcessResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:85",
-        "main.ProcessResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:82",
-        "main.GetRelPath:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:61"
-      ]
+    "external": "external error",
+    "root": {
+        "KVs": {
+            "bar": 42,
+            "foo": true
+        },
+        "code": "data loss",
+        "message": "no good",
+        "stack": [
+            "eris_test.TestMain:/path/to/file.go:370",
+            "eris_test.TestMain:/path/to/other.go:370",
+        ]
     },
-    "wrap":[
-      {
-        "message":"failed to get relative path for resource 'res2'",
-        "stack":"main.ProcessResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:85"
-      },
-      {
-        "message":"Rel: can't make ./some/malformed/absolute/path/data.json relative to /Users/roti/",
-        "stack":"main.GetRelPath:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:61"
-      }
+    "wrap": [
+        {
+            "code": "internal",
+            "message": "even more context",
+            "stack": "eris_test.TestMain:/path/to/another.go:370",
+        }
     ]
-  },
-  "level":"error",
-  "method":"ProcessResource",
-  "msg":"method completed with error",
-  "time":"2020-01-16T11:20:01-05:00"
 }
 ```
 
-Many of the methods in this package will look familiar if you've used [pkg/errors](https://github.com/pkg/errors) or [xerrors](https://github.com/golang/xerrors), but `eris` employs some additional tricks during error wrapping and unwrapping that greatly improve the readability of the stack trace. This package also takes a unique approach to formatting errors that allows you to write custom formats that conform to your error or log aggregator of choice. You can find more information on the differences between `eris` and `pkg/errors` [here](#comparison-to-other-packages-eg-pkgerrors).
+## Status codes
 
-## Using eris
+We are using [GRPC status codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)
+
+| Status Code      | Description |
+| ----------- | ----------- |
+| Canceled | The operation was cancelled, typically by the caller. |
+| Unknown | Unknown error. For example, this error may be returned when a Status value received from another address space belongs to an error space that is not known in this address space. Also errors raised by APIs that do not return enough error information may be converted to this error. |
+| InvalidArgument | The client specified an invalid argument. Note that this differs from FailedPrecondition. InvalidArgument indicates arguments that are problematic regardless of the state of the system (e.g., a malformed file name). |
+| DeadlineExceeded | The deadline expired before the operation could complete. For operations that change the state of the system, this error may be returned even if the operation has completed successfully. For example, a successful response from a server could have been delayed long. |
+| NotFound | Some requested entity (e.g., file or directory) was not found. Note to server developers: if a request is denied for an entire class of users, such as gradual feature rollout or undocumented allowlist, NotFound may be used. If a request is denied for some users within a class of users, such as user-based access control, PermissionDenied must be used. |
+| AlreadyExists | The entity that a client attempted to create (e.g., file or directory) already exists. |
+| PermissionDenied | The caller does not have permission to execute the specified operation. PermissionDenied must not be used for rejections caused by exhausting some resource (use ResourceExhausted instead for those errors). PermissionDenied must not be used if the caller can not be identified (use Unauthenticated instead for those errors). This error code does not imply the request is valid or the requested entity exists or satisfies other pre-conditions. |
+| ResourceExhausted | Some resource has been exhausted, perhaps a per-user quota, or perhaps the entire file system is out of space. |
+| FailedPrecondition | The operation was rejected because the system is not in a state required for the operation's execution. For example, the directory to be deleted is non-empty, an rmdir operation is applied to a non-directory, etc. Service implementors can use the following guidelines to decide between FailedPrecondition, Aborted, and unavailable: (a) Use unavailable if the client can retry just the failing call. (b) Use Aborted if the client should retry at a higher level (e.g., when a client-specified test-and-set fails, indicating the client should restart a read-modify-write sequence). (c) Use FailedPrecondition if the client should not retry until the system state has been explicitly fixed. E.g., if an "rmdir" fails because the directory is non-empty, FailedPrecondition should be returned since the client should not retry unless the files are deleted from the directory. |
+| Aborted | The operation was aborted, typically due to a concurrency issue such as a sequencer check failure or transaction abort. See the guidelines above for deciding between FailedPrecondition, Aborted, and unavailable. |
+| OutOfRange | The operation was attempted past the valid range. E.g., seeking or reading past end-of-file. Unlike InvalidArgument, this error indicates a problem that may be fixed if the system state changes. For example, a 32-bit file system will generate InvalidArgument if asked to read at an offset that is not in the range [0,2^32-1], but it will generate OutOfRange if asked to read from an offset past the current file size. There is a fair bit of overlap between FailedPrecondition and OutOfRange. We recommend using OutOfRange (the more specific error) when it applies so that callers who are iterating through a space can easily look for an OutOfRange error to detect when they are done. |
+| Unimplemented | The operation is not implemented or is not supported/enabled in this service. |
+| Internal | Internal errors. This means that some invariants expected by the underlying system have been broken. This error code is reserved for serious errors. |
+| Unavailable | The service is currently unavailable. This is most likely a transient condition, which can be corrected by retrying with a back off. Note that it is not always safe to retry non-idempotent operations. |
+| DataLoss | Unrecoverable data loss or corruption. |
+| Unauthenticated | The request does not have valid authentication credentials for the operation. |
+
+**Defaults**: The status code `Unknown` will be used by default when calling `eris.New` and the code `Internal` when calling `eris.Wrap`.
+
+You can convert between `eris.Code` and `grpc.Code` using `FromGrpc(c grpc.Code) Code` and `(c Code) ToGRPC() grpc.Code`.
+
+## Using eris with status codes
 
 ### Creating errors
 
-Creating errors is simple via [`eris.New`](https://pkg.go.dev/github.com/rotisserie/eris#New).
+
+Creating errors is simple via [`eris.New`](https://pkg.go.dev/github.com/risingwavelabs/eris#New). The default assigned error code will be `unknown`. If you would like to assign a different error, use `WithCode`. You can also assign additional properties using `WithProperty`.
 
 ```golang
-var (
-  // global error values can be useful when wrapping errors or inspecting error types
-  ErrInternalServer = eris.New("error internal server")
-)
-
 func (req *Request) Validate() error {
   if req.ID == "" {
-    // or return a new error at the source if you prefer
     return eris.New("error bad request")
+      .WithCode(eris.CodeInvalidArgument)
+      .WithProperty("request ID", "")
   }
   return nil
 }
@@ -95,242 +98,49 @@ func (req *Request) Validate() error {
 
 ### Wrapping errors
 
-[`eris.Wrap`](https://pkg.go.dev/github.com/rotisserie/eris#Wrap) adds context to an error while preserving the original error.
+[`eris.Wrap`](https://pkg.go.dev/github.com/risingwavelabs/eris#Wrap) adds context to an error while preserving the original error. The default assigned error code will be `internal`. Like above you can change the code via `WithCode` and set additional properties using `WithProperty`.
 
 ```golang
 relPath, err := GetRelPath("/Users/roti/", resource.AbsPath)
 if err != nil {
   // wrap the error if you want to add more context
-  return nil, eris.Wrapf(err, "failed to get relative path for resource '%v'", resource.ID)
+  return nil, eris.Wrapf(err, "failed to get relative path for resource '%v'", resource.ID) // has code internal
 }
 ```
 
-### Formatting and logging errors
+## Handling errors 
 
-[`eris.ToString`](https://pkg.go.dev/github.com/rotisserie/eris#ToString) and [`eris.ToJSON`](https://pkg.go.dev/github.com/rotisserie/eris#ToJSON) should be used to log errors with the default format (shown above). The JSON method returns a `map[string]any` type for compatibility with Go's `encoding/json` package and many common JSON loggers (e.g. [logrus](https://github.com/sirupsen/logrus)).
+When handling errors, you can rely on the error code. You may also use the additional properties to get more information about the cause of the error. 
 
-```golang
-// format the error to JSON with the default format and stack traces enabled
-formattedJSON := eris.ToJSON(err, true)
-fmt.Println(json.Marshal(formattedJSON)) // marshal to JSON and print
-logger.WithField("error", formattedJSON).Error() // or ideally, pass it directly to a logger
+```go 
+err := operation()
 
-// format the error to a string and print it
-formattedStr := eris.ToString(err, true)
-fmt.Println(formattedStr)
-```
+if err.Code() == eris.CodeDeadlineExceeded {
+	// retry operation
+}
 
-`eris` also enables control over the [default format's separators](#formatting-with-custom-separators) and allows advanced users to write their own [custom output format](#writing-a-custom-output-format).
-
-### Interpreting eris stack traces
-
-Errors created with this package contain stack traces that are managed automatically. They're currently mandatory when creating and wrapping errors but optional when printing or logging. By default, the stack trace and all wrapped layers follow the opposite order of Go's `runtime` package, which means that the original calling method is shown first and the root cause of the error is shown last.
-
-```golang
-{
-  "root":{
-    "message":"error bad request", // root cause
-    "stack":[
-      "main.main:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:143", // original calling method
-      "main.ProcessResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:71",
-      "main.(*Request).Validate:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:29", // location of Wrap call
-      "main.(*Request).Validate:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:28" // location of the root
-    ]
-  },
-  "wrap":[
-    {
-      "message":"received a request with no ID", // additional context
-      "stack":"main.(*Request).Validate:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:29" // location of Wrap call
-    }
-  ]
+if err.HasKVs() {
+	additional_context := caller2.KVs()
+	// log additional context
 }
 ```
 
-### Inverting the stack trace and error output
+You can also use `GetCode(err error)`. This will default to `unknown` if you pass in an standard lib error. 
 
-If you prefer some other order than the default, `eris` supports inverting both the stack trace and the entire error output. When both are inverted, the root error is shown first and the original calling method is shown last.
 
-```golang
-// create a default format with error and stack inversion options
-format := eris.NewDefaultStringFormat(eris.FormatOptions{
-  InvertOutput: true, // flag that inverts the error output (wrap errors shown first)
-  WithTrace: true,    // flag that enables stack trace output
-  InvertTrace: true,  // flag that inverts the stack trace output (top of call stack shown first)
-})
 
-// format the error to a string and print it
-formattedStr := eris.ToCustomString(err, format)
-fmt.Println(formattedStr)
-
-// example output:
-// error not found
-//   main.GetResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:52
-//   main.ProcessResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:76
-//   main.main:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:143
-// failed to get resource 'res1'
-//   main.GetResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:52
-```
-
-### Inspecting errors
-
-The `eris` package provides a couple ways to inspect and compare error types. [`eris.Is`](https://pkg.go.dev/github.com/rotisserie/eris#Is) returns true if a particular error appears anywhere in the error chain. Currently, it works simply by comparing error messages with each other. If an error contains a particular message (e.g. `"error not found"`) anywhere in its chain, it's defined to be that error type.
-
-```golang
-ErrNotFound := eris.New("error not found")
-_, err := db.Get(id)
-// check if the resource was not found
-if eris.Is(err, ErrNotFound) {
-  // return the error with some useful context
-  return eris.Wrapf(err, "error getting resource '%v'", id)
-}
-```
-
-[`eris.As`](https://pkg.go.dev/github.com/rotisserie/eris#As) finds the first error in a chain that matches a given target. If there's a match, it sets the target to that error value and returns true.
-
-```golang
-var target *NotFoundError
-_, err := db.Get(id)
-// check if the error is a NotFoundError type
-if errors.As(err, &target) {
-    // err is a *NotFoundError and target is set to the error's value
-    return target
-}
-```
-
-[`eris.Cause`](https://pkg.go.dev/github.com/rotisserie/eris#Cause) unwraps an error until it reaches the cause, which is defined as the first (i.e. root) error in the chain.
-
-```golang
-ErrNotFound := eris.New("error not found")
-_, err := db.Get(id)
-// compare the cause to some sentinel value
-if eris.Cause(err) == ErrNotFound {
-  // return the error with some useful context
-  return eris.Wrapf(err, "error getting resource '%v'", id)
-}
-```
-
-### Formatting with custom separators
-
-For users who need more control over the error output, `eris` allows for some control over the separators between each piece of the output via the [`eris.Format`](https://pkg.go.dev/github.com/rotisserie/eris#Format) type. If this isn't flexible enough for your needs, see the [custom output format](#writing-a-custom-output-format) section below. To format errors with custom separators, you can define and pass a format object to [`eris.ToCustomString`](https://pkg.go.dev/github.com/rotisserie/eris#ToCustomString) or [`eris.ToCustomJSON`](https://pkg.go.dev/github.com/rotisserie/eris#ToCustomJSON).
-
-```golang
-// format the error to a string with custom separators
-formattedStr := eris.ToCustomString(err, Format{
-  FormatOptions: eris.FormatOptions{
-    WithTrace: true,   // flag that enables stack trace output
-  },
-  MsgStackSep: "\n",   // separator between error messages and stack frame data
-  PreStackSep: "\t",   // separator at the beginning of each stack frame
-  StackElemSep: " | ", // separator between elements of each stack frame
-  ErrorSep: "\n",      // separator between each error in the chain
-})
-fmt.Println(formattedStr)
-
-// example output:
-// error reading file 'example.json'
-//   main.readFile | .../example/main.go | 6
-// unexpected EOF
-//   main.main | .../example/main.go | 20
-//   main.parseFile | .../example/main.go | 12
-//   main.readFile | .../example/main.go | 6
-```
-
-### Writing a custom output format
-
-`eris` also allows advanced users to construct custom error strings or objects in case the default error doesn't fit their requirements. The [`UnpackedError`](https://pkg.go.dev/github.com/rotisserie/eris#UnpackedError) object provides a convenient and developer friendly way to store and access existing error traces. The `ErrRoot` and `ErrChain` fields correspond to the root error and wrap error chain, respectively. If a root error wraps an external error, that error will be default formatted and assigned to the `ErrExternal` field. If any other error type is unpacked, it will appear in the `ErrExternal` field. You can access all of the information contained in an error via [`eris.Unpack`](https://pkg.go.dev/github.com/rotisserie/eris#Unpack).
-
-```golang
-// get the unpacked error object
-uErr := eris.Unpack(err)
-// send only the root error message to a logging server instead of the complete error trace
-sentry.CaptureMessage(uErr.ErrRoot.Msg)
-```
-
-### Sending error traces to Sentry
-
-`eris` supports sending your error traces to [Sentry](https://sentry.io/) using the Sentry Go [client SDK](https://github.com/getsentry/sentry-go). You can run the example that generated the following output on Sentry UI using the command `go run examples/sentry/example.go -dsn=<DSN>`.
-
-```
-*eris.wrapError: test: wrap 1: wrap 2: wrap 3
-  File "main.go", line 19, in Example
-    return eris.New("test")
-  File "main.go", line 23, in WrapExample
-    err := Example()
-  File "main.go", line 25, in WrapExample
-    return eris.Wrap(err, "wrap 1")
-  File "main.go", line 31, in WrapSecondExample
-    err := WrapExample()
-  File "main.go", line 33, in WrapSecondExample
-    return eris.Wrap(err, "wrap 2")
-  File "main.go", line 44, in main
-    err := WrapSecondExample()
-  File "main.go", line 45, in main
-    err = eris.Wrap(err, "wrap 3")
-```
-
-## Comparison to other packages (e.g. pkg/errors)
-
-### Error formatting and stack traces
-
-Readability is a major design requirement for `eris`. In addition to the JSON output shown above, `eris` also supports formatting errors to a simple string.
-
-```
-failed to get resource 'res1'
-  main.GetResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:52
-error not found
-  main.main:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:143
-  main.ProcessResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:76
-  main.GetResource:/Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:52
-```
-
-The `eris` error stack is designed to be easier to interpret than other error handling packages, and it achieves this by omitting extraneous information and avoiding unnecessary repetition. The stack trace above omits calls from Go's `runtime` package and includes just a single frame for wrapped layers which are inserted into the root error stack trace in the correct order. `eris` also correctly handles and updates stack traces for global error values in a transparent way.
-
-The output of `pkg/errors` for the same error is shown below. In this case, the root error stack trace is incorrect because it was declared as a global value, and it includes several extraneous lines from the `runtime` package. The output is also much more difficult to read and does not allow for custom formatting.
-
-```
-error not found
-main.init
-  /Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:18
-runtime.doInit
-  /usr/local/Cellar/go/1.13.6/libexec/src/runtime/proc.go:5222
-runtime.main
-  /usr/local/Cellar/go/1.13.6/libexec/src/runtime/proc.go:190
-runtime.goexit
-  /usr/local/Cellar/go/1.13.6/libexec/src/runtime/asm_amd64.s:1357
-failed to get resource 'res1'
-main.GetResource
-  /Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:52
-main.ProcessResource
-  /Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:76
-main.main
-  /Users/roti/go/src/github.com/rotisserie/eris/examples/logging/example.go:143
-runtime.main
-  /usr/local/Cellar/go/1.13.6/libexec/src/runtime/proc.go:203
-runtime.goexit
-  /usr/local/Cellar/go/1.13.6/libexec/src/runtime/asm_amd64.s:1357
-```
-
-## Migrating to eris
-
-Migrating to `eris` should be a very simple process. If it doesn't offer something that you currently use from existing error packages, feel free to submit an issue to us. If you don't want to refactor all of your error handling yet, `eris` should work relatively seamlessly with your existing error types. Please submit an issue if this isn't the case for some reason.
-
-Many of your dependencies will likely still use [pkg/errors](https://github.com/pkg/errors) for error handling. When external error types are wrapped with additional context, `eris` creates a new root error that wraps the original external error. Because of this, error inspection should work seamlessly with other error libraries.
-
-## Contributing
-
-If you'd like to contribute to `eris`, we'd love your input! Please submit an issue first so we can discuss your proposal.
-
--------------------------------------------------------------------------------
+-----------------------------------------------------------------
 
 Released under the [MIT License].
 
 [MIT License]: LICENSE.txt
 [eris-logo]: https://cdn.emojidex.com/emoji/hdpi/minecraft_golden_apple.png?1511637499
-[doc-img]: https://pkg.go.dev/badge/github.com/rotisserie/eris
-[doc]: https://pkg.go.dev/github.com/rotisserie/eris
-[ci-img]: https://github.com/rotisserie/eris/workflows/build/badge.svg
-[ci]: https://github.com/rotisserie/eris/actions
-[report-img]: https://goreportcard.com/badge/github.com/rotisserie/eris
-[report]: https://goreportcard.com/report/github.com/rotisserie/eris
-[cov-img]: https://codecov.io/gh/rotisserie/eris/branch/master/graph/badge.svg
-[cov]: https://codecov.io/gh/rotisserie/eris
+[doc-img]: https://pkg.go.dev/badge/github.com/risingwavelabs/eris
+[doc]: https://pkg.go.dev/github.com/risingwavelabs/eris
+[ci-img]: https://github.com/risingwavelabs/eris/workflows/build/badge.svg
+[ci]: https://github.com/risingwavelabs/eris/actions
+[report-img]: https://goreportcard.com/badge/github.com/risingwavelabs/eris
+[report]: https://goreportcard.com/report/github.com/risingwavelabs/eris
+[cov-img]: https://codecov.io/gh/risingwavelabs/eris/branch/master/graph/badge.svg
+[cov]: https://codecov.io/gh/risingwavelabs/eris
+

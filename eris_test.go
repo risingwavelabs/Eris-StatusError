@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rotisserie/eris"
+	"github.com/risingwavelabs/eris"
 )
 
 var (

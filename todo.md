@@ -2,11 +2,12 @@
 - [x] additional values `map[string]any`
 - [x] Additional status code field
 - [x] GH: Run unit tests on each commit
-- [ ] Update Readme 
 - [x] Translation between gRPC err codes and our codes
-- [ ] Read code docs `make docs`
-- [ ] Read godoc docs
+- [x] Read godoc docs
 - [x] change API see below 
+- [x] Update Readme 
+- [ ] Check any mention of rotisserie
+
 
 tests: 
 test if map is printed 

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rotisserie/eris"
+	"github.com/risingwavelabs/eris"
 )
 
 func TestUnpack(t *testing.T) {

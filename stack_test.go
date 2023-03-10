@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rotisserie/eris"
+	"github.com/risingwavelabs/eris"
 )
 
 const (
