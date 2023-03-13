@@ -96,6 +96,26 @@ func (req *Request) Validate() error {
 }
 ```
 
+You can also use HTTP and GRPC codes to create errors 
+
+```golang 
+// http
+httpCode := operation() 
+err := eris.New("http operation went badly").WithCodeHttp(httpCode)
+// err is nil, if httpCode is 200
+if err != nil {
+  // log err 
+}
+
+// grpc
+grpcCode := operation() 
+err := eris.New("grpc operation went badly").WithCodeGrpc(grpcCode)
+// err is nil, if grpcCode is OK
+if err != nil {
+  // log err 
+}
+```
+
 ### Wrapping errors
 
 [`eris.Wrap`](https://pkg.go.dev/github.com/risingwavelabs/eris#Wrap) adds context to an error while preserving the original error. The default assigned error code will be `internal`. Like above you can change the code via `WithCode` and set additional properties using `WithProperty`.
@@ -122,6 +142,11 @@ if err.Code() == eris.CodeDeadlineExceeded {
 if err.HasKVs() {
 	additional_context := caller2.KVs()
 	// log additional context
+}
+
+httpResultCode := 200 
+if err != nil {
+  httpResultCode = err.Code().ToHttp()
 }
 ```
 
