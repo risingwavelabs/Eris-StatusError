@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	file              = "StatusError/stack_test.go"
+	file              = "eris/stack_test.go"
 	readFunc          = "eris_test.ReadFile"
 	parseFunc         = "eris_test.ParseFile"
 	processFunc       = "eris_test.ProcessFile"

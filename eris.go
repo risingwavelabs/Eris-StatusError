@@ -4,12 +4,17 @@ package eris
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
+
+	grpc "google.golang.org/grpc/codes"
 )
 
 type statusError interface {
 	error
 	WithCode(Code) statusError
+	WithCodeGrpc(grpc.Code) statusError
+	WithCodeHttp(HTTPStatus) statusError
 	WithProperty(string, any) statusError
 	Code() Code
 	HasKVs() bool
@@ -289,6 +294,27 @@ func (e *rootError) WithCode(code Code) statusError {
 	return e
 }
 
+// TODO: also do this for other errors
+// add this function to interface
+
+// WithCodeGrpc sets the error code, based on an GRPC error code.
+func (e *rootError) WithCodeGrpc(code grpc.Code) statusError {
+	if e == nil || code == grpc.OK {
+		return nil
+	}
+	e.code, _ = fromGrpc(code)
+	return e
+}
+
+// WithCodeHttp sets the error code, based on an HTTP status code.
+func (e *rootError) WithCodeHttp(code HTTPStatus) statusError {
+	if e == nil || code == http.StatusOK {
+		return nil
+	}
+	e.code, _ = fromHttp(code)
+	return e
+}
+
 // WithProperty adds a key-value pair to the error.
 func (e *rootError) WithProperty(key string, value any) statusError {
 	if e == nil {
@@ -378,6 +404,24 @@ func (e *wrapError) WithCode(code Code) statusError {
 		return nil
 	}
 	e.code = code
+	return e
+}
+
+// WithCodeGrpc sets the error code, based on an GRPC error code.
+func (e *wrapError) WithCodeGrpc(code grpc.Code) statusError {
+	if e == nil || code == grpc.OK {
+		return nil
+	}
+	e.code, _ = fromGrpc(code)
+	return e
+}
+
+// WithCodeHttp sets the error code, based on an HTTP status code.
+func (e *wrapError) WithCodeHttp(code HTTPStatus) statusError {
+	if e == nil || code == http.StatusOK {
+		return nil
+	}
+	e.code, _ = fromHttp(code)
 	return e
 }
 

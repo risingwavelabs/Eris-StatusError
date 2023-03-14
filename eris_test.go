@@ -3,12 +3,14 @@ package eris_test
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/risingwavelabs/eris"
+	grpc "google.golang.org/grpc/codes"
 )
 
 var (
@@ -762,5 +764,17 @@ func TestStackFrames(t *testing.T) {
 				t.Errorf("%v: expected { %v } got { %v }", desc, getFrameFromLink(uErr.ErrChain[0]), sFrames)
 			}
 		})
+	}
+}
+
+func TestOkCode(t *testing.T) {
+	err := eris.New("everything went fine").WithCodeGrpc(grpc.OK)
+	if err != nil {
+		t.Errorf("expected nil error if grpc status is OK, but error was %v", err)
+	}
+
+	err = eris.New("everything went fine again").WithCodeHttp(http.StatusOK)
+	if err != nil {
+		t.Errorf("expected nil error if grpc status is OK, but error was %v", err)
 	}
 }

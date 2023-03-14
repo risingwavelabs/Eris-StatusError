@@ -1,6 +1,8 @@
 package eris
 
 import (
+	"net/http"
+
 	grpc "google.golang.org/grpc/codes"
 )
 
@@ -78,8 +80,11 @@ const (
 	DEFAULT_UNKNOWN_CODE = CodeUnknown
 )
 
-// FromGrpc converts a grpc code to an eris code.
-func FromGrpc(c grpc.Code) Code {
+// fromGrpc converts a grpc code to an eris code. Returns false if mapping failed
+func fromGrpc(c grpc.Code) (Code, bool) {
+	if c == grpc.OK {
+		return DEFAULT_UNKNOWN_CODE, false
+	}
 	if resultCode, ok := map[grpc.Code]Code{
 		grpc.Aborted:            CodeAborted,
 		grpc.AlreadyExists:      CodeAlreadyExists,
@@ -98,13 +103,13 @@ func FromGrpc(c grpc.Code) Code {
 		grpc.Unknown:            CodeUnknown,
 		grpc.Unimplemented:      CodeUnimplemented,
 	}[c]; ok {
-		return resultCode
+		return resultCode, true
 	}
-	return DEFAULT_UNKNOWN_CODE
+	return DEFAULT_UNKNOWN_CODE, true
 }
 
-// ToGRPC converts an eris code to a grpc code.
-func (c Code) ToGRPC() grpc.Code {
+// ToGrpc converts an eris code to a grpc code.
+func (c Code) ToGrpc() grpc.Code {
 	if grpcCode, ok := map[Code]grpc.Code{
 		CodeAborted:            grpc.Aborted,
 		CodeAlreadyExists:      grpc.AlreadyExists,
@@ -126,4 +131,50 @@ func (c Code) ToGRPC() grpc.Code {
 		return grpcCode
 	}
 	return grpc.Unknown
+}
+
+// We do not provide a FromHttp method, since many http codes, would correlate to a grpc code OK
+// TODO Write a test that asserts that
+
+type HTTPStatus int
+
+// fromHttp converts a http code to an eris code. Returns false if mapping failed
+func fromHttp(code HTTPStatus) (Code, bool) {
+	// mapping according to https://github.com/lobocv/simplerr/blob/master/ecosystem/http/translate_error_code.go
+	if code == 200 {
+		return DEFAULT_UNKNOWN_CODE, false
+	}
+	if c, ok := map[HTTPStatus]Code{
+		http.StatusInternalServerError: CodeUnknown,
+		http.StatusNotFound:            CodeNotFound,
+		http.StatusRequestTimeout:      CodeDeadlineExceeded,
+		http.StatusForbidden:           CodePermissionDenied,
+		http.StatusUnauthorized:        CodeUnauthenticated,
+		http.StatusNotImplemented:      CodeUnimplemented,
+		http.StatusBadRequest:          CodeInvalidArgument,
+		http.StatusTooManyRequests:     CodeResourceExhausted,
+	}[code]; ok {
+		return c, true
+	}
+	return CodeUnknown, true
+}
+
+// ToHttp converts an eris code to a http code.
+func (code Code) ToHttp() HTTPStatus {
+	// mapping according to https://github.com/lobocv/simplerr/blob/master/ecosystem/http/translate_error_code.go
+	if httpCode, ok := map[Code]HTTPStatus{
+		CodeUnknown:           http.StatusInternalServerError,
+		CodeNotFound:          http.StatusNotFound,
+		CodeDeadlineExceeded:  http.StatusRequestTimeout,
+		CodePermissionDenied:  http.StatusForbidden,
+		CodeUnauthenticated:   http.StatusUnauthorized,
+		CodeUnimplemented:     http.StatusNotImplemented,
+		CodeInvalidArgument:   http.StatusBadRequest,
+		CodeResourceExhausted: http.StatusTooManyRequests,
+	}[code]; ok {
+		return httpCode
+	}
+
+	// Default according to https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
+	return http.StatusInternalServerError
 }
