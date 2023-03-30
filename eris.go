@@ -76,9 +76,7 @@ func Wrapf(err error, format string, args ...any) statusError {
 
 func wrap(err error, msg string, code Code) statusError {
 	if err == nil {
-		// Compiler needs to know concrete type in order to call functions of interface
-		var nilPtr *rootError
-		return nilPtr
+		return nil
 	}
 
 	// callers(4) skips runtime.Callers, stack.callers, this method, and Wrap(f)

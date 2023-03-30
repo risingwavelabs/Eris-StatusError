@@ -9,8 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/risingwavelabs/eris"
 	grpc "google.golang.org/grpc/codes"
+
+	"github.com/risingwavelabs/eris"
 )
 
 var (
@@ -776,5 +777,14 @@ func TestOkCode(t *testing.T) {
 	err = eris.New("everything went fine again").WithCodeHttp(http.StatusOK)
 	if err != nil {
 		t.Errorf("expected nil error if grpc status is OK, but error was %v", err)
+	}
+}
+
+func TestWrapType(t *testing.T) {
+	var err error = nil
+	var erisErr = eris.Wrapf(err, "test error")
+
+	if erisErr != nil {
+		t.Errorf("expected nil error if wrap nil error, but error was %v", erisErr)
 	}
 }
