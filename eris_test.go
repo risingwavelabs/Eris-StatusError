@@ -201,6 +201,18 @@ func TestExternalErrorWrapping(t *testing.T) {
 		//			"external error",
 		//		},
 		//	},
+		"implicate wrap when add field to external error": {
+			cause: eris.With(
+				errors.New("external error"),
+				eris.Codes(eris.CodeCanceled), eris.KVs("key", "value"),
+			),
+			input: []string{"even more context"},
+			output: []string{
+				"code(unknown) even more context: code(canceled) KVs(map[key:value]) with property: external error",
+				"code(canceled) KVs(map[key:value]) with property: external error",
+				"external error",
+			},
+		},
 	}
 
 	for desc, tc := range tests {
