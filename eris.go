@@ -12,10 +12,6 @@ import (
 
 type statusError interface {
 	error
-	WithCode(Code) statusError
-	WithCodeGrpc(grpc.Code) statusError
-	WithCodeHttp(HTTPStatus) statusError
-	WithProperty(string, any) statusError
 	Code() Code
 	HasKVs() bool
 	KVs() map[string]any
@@ -266,6 +262,63 @@ func StackFrames(err error) []uintptr {
 	return []uintptr{}
 }
 
+func With(err error, fields ...Field) error {
+	if err == nil {
+		return nil
+	}
+
+	if root, ok := err.(*rootError); ok {
+		for _, field := range fields {
+			root = root.WithField(field).(*rootError)
+		}
+		return root
+	} else if wrap, ok := err.(*wrapError); ok {
+		for _, field := range fields {
+			wrap = wrap.WithField(field).(*wrapError)
+		}
+		return wrap
+	} else {
+		return With(Wrap(err, "with property"), fields...)
+	}
+}
+
+func WithCode(err error, code Code) error {
+	return With(err, Codes(code))
+}
+
+func WithProperty(err error, key string, value any) error {
+	return With(err, KVs(key, value))
+}
+
+type FieldType uint8
+
+const (
+	UnknownType FieldType = iota
+	CodeType
+	KVType
+)
+
+type Field struct {
+	Type  FieldType
+	Key   string
+	Value any
+}
+
+func Codes(code Code) Field {
+	return Field{
+		Type:  CodeType,
+		Value: code,
+	}
+}
+
+func KVs(key string, value any) Field {
+	return Field{
+		Type:  KVType,
+		Key:   key,
+		Value: value,
+	}
+}
+
 type rootError struct {
 	global bool   // flag indicating whether the error was declared globally
 	msg    string // root error message
@@ -322,6 +375,16 @@ func (e *rootError) WithProperty(key string, value any) statusError {
 		e.kvs = make(map[string]any)
 	}
 	e.kvs[key] = value
+	return e
+}
+
+// WithField adds a key-value pair to the error.
+func (e *rootError) WithField(field Field) statusError {
+	if field.Type == CodeType {
+		return e.WithCode(field.Value.(Code))
+	} else if field.Type == KVType {
+		return e.WithProperty(field.Key, field.Value)
+	}
 	return e
 }
 
@@ -432,6 +495,16 @@ func (e *wrapError) WithProperty(key string, value any) statusError {
 		e.kvs = make(map[string]any)
 	}
 	e.kvs[key] = value
+	return e
+}
+
+// WithField adds a key-value pair to the error.
+func (e *wrapError) WithField(field Field) statusError {
+	if field.Type == CodeType {
+		return e.WithCode(field.Value.(Code))
+	} else if field.Type == KVType {
+		return e.WithProperty(field.Key, field.Value)
+	}
 	return e
 }
 
