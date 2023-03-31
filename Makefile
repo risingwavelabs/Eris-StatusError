@@ -51,7 +51,8 @@ docs:
 ## Run the tests
 test:
 	@echo Running tests
-	@go test -race -v .
+	@go test -race -covermode=atomic -coverprofile=cover.out -v .
+	@go tool cover -html cover.out -o cover.html
 
 tests: test
 

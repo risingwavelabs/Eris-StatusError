@@ -38,7 +38,7 @@ func ReadFile(fname string, global bool, external bool) error {
 	} else { // global external
 		err = fmt.Errorf("external context: %w", errExt)
 	}
-	return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
+	return eris.WithCode(eris.Wrapf(err, "error reading file '%v'", fname), eris.CodeUnknown)
 }
 
 // example func that just catches and returns an error.
@@ -55,7 +55,7 @@ func ProcessFile(fname string, global bool, external bool) error {
 	// parse the file
 	err := ParseFile(fname, global, external)
 	if err != nil {
-		return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeUnknown)
+		return eris.WithCode(eris.Wrapf(err, "error processing file '%v'", fname), eris.CodeUnknown)
 	}
 	return nil
 }
@@ -189,7 +189,7 @@ func TestGoRoutines(t *testing.T) {
 
 	go func() {
 		err := dummyStack()
-		err = eris.Wrap(err, "error reading file").WithCode(eris.CodeUnknown)
+		err = eris.WithCode(eris.Wrap(err, "error reading file"), eris.CodeUnknown)
 
 		// verify the stack frames match expected values
 		uerr := eris.Unpack(err)

@@ -80,7 +80,7 @@ const (
 	DEFAULT_UNKNOWN_CODE = CodeUnknown
 )
 
-// fromGrpc converts a grpc code to an eris code. Returns false if mapping failed
+// fromGrpc converts a grpc code to an eris code. Returns false if mapping failed.
 func fromGrpc(c grpc.Code) (Code, bool) {
 	if c == grpc.OK {
 		return DEFAULT_UNKNOWN_CODE, false
@@ -138,7 +138,7 @@ func (c Code) ToGrpc() grpc.Code {
 
 type HTTPStatus int
 
-// fromHttp converts a http code to an eris code. Returns false if mapping failed
+// fromHttp converts a http code to an eris code. Returns false if mapping failed.
 func fromHttp(code HTTPStatus) (Code, bool) {
 	// mapping according to https://github.com/lobocv/simplerr/blob/master/ecosystem/http/translate_error_code.go
 	if code == 200 {

@@ -63,22 +63,20 @@ func Errorf(format string, args ...any) statusError {
 // attempts to unwrap them while building a new error chain. If an external type does not implement the unwrap
 // interface, it flattens the error and creates a new root error from it before wrapping with the additional
 // context.
-func Wrap(err error, msg string) statusError {
+func Wrap(err error, msg string) error {
 	return wrap(err, fmt.Sprint(msg), DEFAULT_ERROR_CODE_WRAP)
 }
 
 // Wrapf adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
-func Wrapf(err error, format string, args ...any) statusError {
+func Wrapf(err error, format string, args ...any) error {
 	return wrap(err, fmt.Sprintf(format, args...), DEFAULT_ERROR_CODE_WRAP)
 }
 
-func wrap(err error, msg string, code Code) statusError {
+func wrap(err error, msg string, code Code) error {
 	if err == nil {
-		// Compiler needs to know concrete type in order to call functions of interface
-		var nilPtr *rootError
-		return nilPtr
+		return nil
 	}
 
 	// callers(4) skips runtime.Callers, stack.callers, this method, and Wrap(f)
@@ -268,6 +266,63 @@ func StackFrames(err error) []uintptr {
 	return []uintptr{}
 }
 
+func With(err error, fields ...Field) error {
+	if err == nil {
+		return nil
+	}
+
+	if root, ok := err.(*rootError); ok {
+		for _, field := range fields {
+			root = root.WithField(field).(*rootError)
+		}
+		return root
+	} else if wrap, ok := err.(*wrapError); ok {
+		for _, field := range fields {
+			wrap = wrap.WithField(field).(*wrapError)
+		}
+		return wrap
+	} else {
+		return With(Wrap(err, "with property"), fields...)
+	}
+}
+
+func WithCode(err error, code Code) error {
+	return With(err, Codes(code))
+}
+
+func WithProperty(err error, key string, value any) error {
+	return With(err, KVs(key, value))
+}
+
+type FieldType uint8
+
+const (
+	UnknownType FieldType = iota
+	CodeType
+	KVType
+)
+
+type Field struct {
+	Type  FieldType
+	Key   string
+	Value any
+}
+
+func Codes(code Code) Field {
+	return Field{
+		Type:  CodeType,
+		Value: code,
+	}
+}
+
+func KVs(key string, value any) Field {
+	return Field{
+		Type:  KVType,
+		Key:   key,
+		Value: value,
+	}
+}
+
 type rootError struct {
 	global bool   // flag indicating whether the error was declared globally
 	msg    string // root error message
@@ -287,9 +342,6 @@ func (e *rootError) KVs() map[string]any {
 
 // WithCode sets the error code.
 func (e *rootError) WithCode(code Code) statusError {
-	if e == nil {
-		return nil
-	}
 	e.code = code
 	return e
 }
@@ -299,8 +351,8 @@ func (e *rootError) WithCode(code Code) statusError {
 
 // WithCodeGrpc sets the error code, based on an GRPC error code.
 func (e *rootError) WithCodeGrpc(code grpc.Code) statusError {
-	if e == nil || code == grpc.OK {
-		return nil
+	if code == grpc.OK {
+		return e
 	}
 	e.code, _ = fromGrpc(code)
 	return e
@@ -308,8 +360,8 @@ func (e *rootError) WithCodeGrpc(code grpc.Code) statusError {
 
 // WithCodeHttp sets the error code, based on an HTTP status code.
 func (e *rootError) WithCodeHttp(code HTTPStatus) statusError {
-	if e == nil || code == http.StatusOK {
-		return nil
+	if code == http.StatusOK {
+		return e
 	}
 	e.code, _ = fromHttp(code)
 	return e
@@ -317,13 +369,20 @@ func (e *rootError) WithCodeHttp(code HTTPStatus) statusError {
 
 // WithProperty adds a key-value pair to the error.
 func (e *rootError) WithProperty(key string, value any) statusError {
-	if e == nil {
-		return nil
-	}
 	if e.kvs == nil {
 		e.kvs = make(map[string]any)
 	}
 	e.kvs[key] = value
+	return e
+}
+
+// WithField adds a key-value pair to the error.
+func (e *rootError) WithField(field Field) statusError {
+	if field.Type == CodeType {
+		return e.WithCode(field.Value.(Code))
+	} else if field.Type == KVType {
+		return e.WithProperty(field.Key, field.Value)
+	}
 	return e
 }
 
@@ -400,17 +459,14 @@ func (e *wrapError) KVs() map[string]any {
 
 // WithCode sets the error code.
 func (e *wrapError) WithCode(code Code) statusError {
-	if e == nil {
-		return nil
-	}
 	e.code = code
 	return e
 }
 
 // WithCodeGrpc sets the error code, based on an GRPC error code.
 func (e *wrapError) WithCodeGrpc(code grpc.Code) statusError {
-	if e == nil || code == grpc.OK {
-		return nil
+	if code == grpc.OK {
+		return e
 	}
 	e.code, _ = fromGrpc(code)
 	return e
@@ -418,8 +474,8 @@ func (e *wrapError) WithCodeGrpc(code grpc.Code) statusError {
 
 // WithCodeHttp sets the error code, based on an HTTP status code.
 func (e *wrapError) WithCodeHttp(code HTTPStatus) statusError {
-	if e == nil || code == http.StatusOK {
-		return nil
+	if code == http.StatusOK {
+		return e
 	}
 	e.code, _ = fromHttp(code)
 	return e
@@ -427,13 +483,20 @@ func (e *wrapError) WithCodeHttp(code HTTPStatus) statusError {
 
 // WithProperty adds a key-value pair to the error.
 func (e *wrapError) WithProperty(key string, value any) statusError {
-	if e == nil {
-		return nil
-	}
 	if e.kvs == nil {
 		e.kvs = make(map[string]any)
 	}
 	e.kvs[key] = value
+	return e
+}
+
+// WithField adds a key-value pair to the error.
+func (e *wrapError) WithField(field Field) statusError {
+	if field.Type == CodeType {
+		return e.WithCode(field.Value.(Code))
+	} else if field.Type == KVType {
+		return e.WithProperty(field.Key, field.Value)
+	}
 	return e
 }
 
