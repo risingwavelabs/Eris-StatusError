@@ -46,7 +46,7 @@ func TestExampleToJSON_external(t *testing.T) {
 func ExampleToJSON_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(ErrUnexpectedEOF, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
+		return eris.WithCode(eris.Wrapf(ErrUnexpectedEOF, "error reading file '%v'", fname), eris.CodeUnknown)
 	}
 
 	// example func that catches and returns an error without modification
@@ -104,7 +104,7 @@ func ExampleToJSON_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, "error reading file '%v'", fname).WithCode(eris.CodeUnknown)
+			return eris.WithCode(eris.Wrapf(err, "error reading file '%v'", fname), eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -124,7 +124,7 @@ func ExampleToJSON_local() {
 		// process the file
 		err := processFile(fname) // line 29
 		if err != nil {
-			return eris.Wrapf(err, "error printing file '%v'", fname).WithCode(eris.CodeUnknown)
+			return eris.WithCode(eris.Wrapf(err, "error printing file '%v'", fname), eris.CodeUnknown)
 		}
 		return nil
 	}
@@ -198,7 +198,7 @@ func TestExampleToString_external(t *testing.T) {
 func ExampleToString_global() {
 	// example func that wraps a global error value
 	readFile := func(fname string) error {
-		return eris.Wrapf(FormattedErrUnexpectedEOF, "error reading file '%v'", fname).WithProperty("file", fname)
+		return eris.WithProperty(eris.Wrapf(FormattedErrUnexpectedEOF, "error reading file '%v'", fname), "file", fname)
 	}
 
 	// example func that catches and returns an error without modification
@@ -216,7 +216,7 @@ func ExampleToString_global() {
 		// parse the file
 		err := parseFile(fname) // line 22
 		if err != nil {
-			return eris.Wrapf(err, "error processing file '%v'", fname).WithCode(eris.CodeDeadlineExceeded)
+			return eris.WithCode(eris.Wrapf(err, "error processing file '%v'", fname), eris.CodeDeadlineExceeded)
 		}
 		return nil
 	}
@@ -266,7 +266,7 @@ func ExampleToString_local() {
 		// read the file
 		err := readFile(fname) // line 9
 		if err != nil {
-			return eris.Wrapf(err, "error reading file '%v'", fname).WithProperty("foo", "bar")
+			return eris.WithProperty(eris.Wrapf(err, "error reading file '%v'", fname), "foo", "bar")
 		}
 		return nil
 	}
@@ -305,11 +305,11 @@ func f() error {
 }
 
 func g() error {
-	return eris.Wrap(f(), "in function g").WithCode(eris.CodeCanceled)
+	return eris.WithCode(eris.Wrap(f(), "in function g"), eris.CodeCanceled)
 }
 
 func h() error {
-	return eris.Wrap(g(), "in function h").WithCode(eris.CodeAborted)
+	return eris.WithCode(eris.Wrap(g(), "in function h"), eris.CodeAborted)
 }
 
 func TestMainFunc(t *testing.T) {
