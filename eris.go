@@ -12,6 +12,10 @@ import (
 
 type statusError interface {
 	error
+	WithCode(Code) statusError
+	WithCodeGrpc(grpc.Code) statusError
+	WithCodeHttp(HTTPStatus) statusError
+	WithProperty(string, any) statusError
 	Code() Code
 	HasKVs() bool
 	KVs() map[string]any
@@ -59,18 +63,18 @@ func Errorf(format string, args ...any) statusError {
 // attempts to unwrap them while building a new error chain. If an external type does not implement the unwrap
 // interface, it flattens the error and creates a new root error from it before wrapping with the additional
 // context.
-func Wrap(err error, msg string) statusError {
+func Wrap(err error, msg string) error {
 	return wrap(err, fmt.Sprint(msg), DEFAULT_ERROR_CODE_WRAP)
 }
 
 // Wrapf adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
 //
 // This is a convenience method for wrapping errors with formatted messages and is otherwise the same as Wrap.
-func Wrapf(err error, format string, args ...any) statusError {
+func Wrapf(err error, format string, args ...any) error {
 	return wrap(err, fmt.Sprintf(format, args...), DEFAULT_ERROR_CODE_WRAP)
 }
 
-func wrap(err error, msg string, code Code) statusError {
+func wrap(err error, msg string, code Code) error {
 	if err == nil {
 		return nil
 	}
@@ -338,9 +342,6 @@ func (e *rootError) KVs() map[string]any {
 
 // WithCode sets the error code.
 func (e *rootError) WithCode(code Code) statusError {
-	if e == nil {
-		return nil
-	}
 	e.code = code
 	return e
 }
@@ -350,8 +351,8 @@ func (e *rootError) WithCode(code Code) statusError {
 
 // WithCodeGrpc sets the error code, based on an GRPC error code.
 func (e *rootError) WithCodeGrpc(code grpc.Code) statusError {
-	if e == nil || code == grpc.OK {
-		return nil
+	if code == grpc.OK {
+		return e
 	}
 	e.code, _ = fromGrpc(code)
 	return e
@@ -359,8 +360,8 @@ func (e *rootError) WithCodeGrpc(code grpc.Code) statusError {
 
 // WithCodeHttp sets the error code, based on an HTTP status code.
 func (e *rootError) WithCodeHttp(code HTTPStatus) statusError {
-	if e == nil || code == http.StatusOK {
-		return nil
+	if code == http.StatusOK {
+		return e
 	}
 	e.code, _ = fromHttp(code)
 	return e
@@ -368,9 +369,6 @@ func (e *rootError) WithCodeHttp(code HTTPStatus) statusError {
 
 // WithProperty adds a key-value pair to the error.
 func (e *rootError) WithProperty(key string, value any) statusError {
-	if e == nil {
-		return nil
-	}
 	if e.kvs == nil {
 		e.kvs = make(map[string]any)
 	}
@@ -461,17 +459,14 @@ func (e *wrapError) KVs() map[string]any {
 
 // WithCode sets the error code.
 func (e *wrapError) WithCode(code Code) statusError {
-	if e == nil {
-		return nil
-	}
 	e.code = code
 	return e
 }
 
 // WithCodeGrpc sets the error code, based on an GRPC error code.
 func (e *wrapError) WithCodeGrpc(code grpc.Code) statusError {
-	if e == nil || code == grpc.OK {
-		return nil
+	if code == grpc.OK {
+		return e
 	}
 	e.code, _ = fromGrpc(code)
 	return e
@@ -479,8 +474,8 @@ func (e *wrapError) WithCodeGrpc(code grpc.Code) statusError {
 
 // WithCodeHttp sets the error code, based on an HTTP status code.
 func (e *wrapError) WithCodeHttp(code HTTPStatus) statusError {
-	if e == nil || code == http.StatusOK {
-		return nil
+	if code == http.StatusOK {
+		return e
 	}
 	e.code, _ = fromHttp(code)
 	return e
@@ -488,9 +483,6 @@ func (e *wrapError) WithCodeHttp(code HTTPStatus) statusError {
 
 // WithProperty adds a key-value pair to the error.
 func (e *wrapError) WithProperty(key string, value any) statusError {
-	if e == nil {
-		return nil
-	}
 	if e.kvs == nil {
 		e.kvs = make(map[string]any)
 	}
