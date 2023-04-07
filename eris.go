@@ -266,6 +266,7 @@ func StackFrames(err error) []uintptr {
 	return []uintptr{}
 }
 
+// With attach additional fields for an error.
 func With(err error, fields ...Field) error {
 	if err == nil {
 		return nil
@@ -286,28 +287,36 @@ func With(err error, fields ...Field) error {
 	}
 }
 
+// WithCode attach an error code for an error.
 func WithCode(err error, code Code) error {
 	return With(err, Codes(code))
 }
 
+// WithProperty attach an additional key-value property for an error.
 func WithProperty(err error, key string, value any) error {
 	return With(err, KVs(key, value))
 }
 
+// FieldType type of field.
 type FieldType uint8
 
 const (
+	// UnknownType unknown, should never be used.
 	UnknownType FieldType = iota
+	// CodeType the field type is a code.
 	CodeType
+	// KVType the field type is a key-value.
 	KVType
 )
 
+// Field is the additional property an error could be attached.
 type Field struct {
 	Type  FieldType
 	Key   string
 	Value any
 }
 
+// Codes returns a Field of CodeType.
 func Codes(code Code) Field {
 	return Field{
 		Type:  CodeType,
@@ -315,6 +324,7 @@ func Codes(code Code) Field {
 	}
 }
 
+// KVs returns a Field of KVType.
 func KVs(key string, value any) Field {
 	return Field{
 		Type:  KVType,
