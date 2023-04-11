@@ -136,6 +136,7 @@ func (c Code) ToGrpc() grpc.Code {
 // We do not provide a FromHttp method, since many http codes, would correlate to a grpc code OK
 // TODO Write a test that asserts that
 
+// HTTPStatus is http status code.
 type HTTPStatus int
 
 // fromHttp converts a http code to an eris code. Returns false if mapping failed.
