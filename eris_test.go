@@ -100,7 +100,7 @@ func TestKVs(t *testing.T) {
 			err := tc.cause
 			if err == nil {
 				t.Errorf("%v: wrapping nil errors should return nil but got { %v }", desc, err)
-			} else if err != nil && !reflect.DeepEqual(err.KVs(), tc.kvs) {
+			} else if !reflect.DeepEqual(err.KVs(), tc.kvs) {
 				t.Errorf("%v: expected { %v } got { %v }", desc, tc.kvs, err.KVs())
 			}
 		})
@@ -138,7 +138,7 @@ func TestExternalKVs(t *testing.T) {
 			err := tc.cause
 			if err == nil {
 				t.Errorf("%v: wrapping nil errors should return nil but got { %v }", desc, err)
-			} else if err != nil && !reflect.DeepEqual(eris.GetKVs(err), tc.kvs) {
+			} else if !reflect.DeepEqual(eris.GetKVs(err), tc.kvs) {
 				t.Errorf("%v: expected { %v } got { %v }", desc, tc.kvs, eris.GetKVs(err))
 			}
 		})
