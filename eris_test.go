@@ -74,6 +74,77 @@ func TestDefaultCodes(t *testing.T) {
 	}
 }
 
+func TestKVs(t *testing.T) {
+	type KVer interface {
+		KVs() map[string]any
+	}
+	tests := map[string]struct {
+		cause KVer           // root error
+		kvs   map[string]any // expected output
+	}{
+		"empty kvs": {
+			cause: eris.New("error message"),
+			kvs:   map[string]any{},
+		},
+		"1 kv": {
+			cause: eris.New("error message").WithProperty("key1", "val1"),
+			kvs:   map[string]any{"key1": "val1"},
+		},
+		"2 kvs": {
+			cause: eris.New("error message").WithProperty("key1", "val1").WithProperty("key2", 2),
+			kvs:   map[string]any{"key1": "val1", "key2": 2},
+		},
+	}
+	for desc, tc := range tests {
+		t.Run(desc, func(t *testing.T) {
+			err := tc.cause
+			if err == nil {
+				t.Errorf("%v: wrapping nil errors should return nil but got { %v }", desc, err)
+			} else if !reflect.DeepEqual(err.KVs(), tc.kvs) {
+				t.Errorf("%v: expected { %v } got { %v }", desc, tc.kvs, err.KVs())
+			}
+		})
+	}
+}
+
+func TestExternalKVs(t *testing.T) {
+	tests := map[string]struct {
+		cause error          // root error
+		kvs   map[string]any // expected output
+	}{
+		"nil kvs": {
+			cause: fmt.Errorf("external error"),
+			kvs:   nil,
+		},
+		"empty kvs": {
+			cause: eris.New("error message"),
+			kvs:   map[string]any{},
+		},
+		"1 kv": {
+			cause: eris.New("error message").WithProperty("key1", "val1"),
+			kvs:   map[string]any{"key1": "val1"},
+		},
+		"2 kvs": {
+			cause: eris.New("error message").WithProperty("key1", "val1").WithProperty("key2", 2),
+			kvs:   map[string]any{"key1": "val1", "key2": 2},
+		},
+		"wrapped kv": {
+			cause: eris.WithProperty(eris.Wrap(fmt.Errorf("external error"), "wrap"), "key1", "val1"),
+			kvs:   map[string]any{"key1": "val1"},
+		},
+	}
+	for desc, tc := range tests {
+		t.Run(desc, func(t *testing.T) {
+			err := tc.cause
+			if err == nil {
+				t.Errorf("%v: wrapping nil errors should return nil but got { %v }", desc, err)
+			} else if !reflect.DeepEqual(eris.GetKVs(err), tc.kvs) {
+				t.Errorf("%v: expected { %v } got { %v }", desc, tc.kvs, eris.GetKVs(err))
+			}
+		})
+	}
+}
+
 func TestErrorWrapping(t *testing.T) {
 	tests := map[string]struct {
 		cause  error    // root error

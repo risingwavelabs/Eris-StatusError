@@ -33,6 +33,18 @@ func GetCode(err error) Code {
 	return codeErr.Code()
 }
 
+// GetKVs returns the error code. Returns nil if error doesn't support kvs.
+func GetKVs(err error) map[string]any {
+	type KVer interface {
+		KVs() map[string]any
+	}
+	kvErr, ok := err.(KVer)
+	if !ok {
+		return nil
+	}
+	return kvErr.KVs()
+}
+
 // New creates a new root error with a static message and an error code 'unknown'.
 func New(msg string) statusError {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers
