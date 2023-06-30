@@ -12,7 +12,7 @@ type Code int
 // These are common impact error codes that are found throughout our services.
 const (
 	// The operation was cancelled, typically by the caller.
-	CodeCanceled Code = iota
+	CodeCanceled Code = iota + 1
 	// Unknown error. For example, this error may be returned when a Status value received from another address space belongs to an error space that is not known in this address space. Also errors raised by APIs that do not return enough error information may be converted to this error.
 	CodeUnknown
 	// The client specified an invalid argument. Note that this differs from FAILED_PRECONDITION. INVALID_ARGUMENT indicates arguments that are problematic regardless of the state of the system (e.g., a malformed file name).

@@ -127,7 +127,7 @@ func TestFormatStr(t *testing.T) {
 		},
 		"external error": {
 			input:  errors.New("external error"),
-			output: "code(canceled) external error",
+			output: "code(unknown) external error",
 		},
 		// This is the expected behavior, since this error does not hold any information
 		"empty error": {
@@ -175,7 +175,7 @@ func TestInvertedFormatStr(t *testing.T) {
 		},
 		"external error": {
 			input:  errors.New("external error"),
-			output: "external error code(canceled) ",
+			output: "external error code(unknown) ",
 		},
 		"empty wrapped external error": {
 			input:  eris.WithCode(eris.Wrap(errors.New("some err"), "additional context"), eris.CodeUnknown),
