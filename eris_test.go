@@ -420,6 +420,11 @@ func TestErrorIs(t *testing.T) {
 			compare: externalErr,
 			output:  true,
 		},
+		"comparing against different external error": {
+			cause:   errors.New("external error 1"),
+			compare: errors.New("external error 2"),
+			output:  false,
+		},
 		"comparing against custom error type": {
 			cause:   customErr,
 			input:   []string{"even more context"},
