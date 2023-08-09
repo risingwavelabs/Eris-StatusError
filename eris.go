@@ -145,47 +145,6 @@ func Unwrap(err error) error {
 	return u.Unwrap()
 }
 
-func eq(a, b error) bool {
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
-	if a == b {
-		return true
-	}
-
-	var kvA, kvB map[string]any
-	var codeA, codeB Code
-	var msgA, msgB string
-
-	if rootA, ok := a.(*rootError); ok {
-		kvA = rootA.kvs
-		codeA = rootA.code
-		msgA = rootA.msg
-	} else if wrapA, ok := a.(*wrapError); ok {
-		kvA = wrapA.kvs
-		codeA = wrapA.code
-		msgA = wrapA.msg
-	}
-
-	if rootB, ok := b.(*rootError); ok {
-		kvB = rootB.kvs
-		codeB = rootB.code
-		msgB = rootB.msg
-	}
-	if wrapB, ok := b.(*wrapError); ok {
-		kvB = wrapB.kvs
-		codeB = wrapB.code
-		msgB = wrapB.msg
-	}
-
-	return reflect.DeepEqual(kvA, kvB) && codeA == codeB && msgA == msgB
-}
-
 // Is reports whether any error in err's chain matches target.
 //
 // The chain consists of err itself followed by the sequence of errors obtained by repeatedly calling Unwrap.
@@ -199,7 +158,7 @@ func Is(err, target error) bool {
 
 	isComparable := reflect.TypeOf(target).Comparable()
 	for {
-		if isComparable && eq(err, target) {
+		if isComparable && err == target {
 			return true
 		}
 		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
@@ -435,7 +394,10 @@ func (e *rootError) Format(s fmt.State, verb rune) {
 // Is returns true if both errors have the same message and code. Ignores additional KV pairs.
 func (e *rootError) Is(target error) bool {
 	if err, ok := target.(*rootError); ok {
-		return e.msg == err.msg && e.code == err.code
+		return e.msg == err.msg && e.code == err.code && reflect.DeepEqual(e.kvs, err.kvs)
+	}
+	if err, ok := target.(*wrapError); ok {
+		return e.msg == err.msg && e.code == err.code && reflect.DeepEqual(e.kvs, err.kvs)
 	}
 	return e.msg == target.Error() && e.code == DEFAULT_UNKNOWN_CODE
 }
@@ -544,8 +506,11 @@ func (e *wrapError) Format(s fmt.State, verb rune) {
 
 // Is returns true if error messages in both errors are equivalent.
 func (e *wrapError) Is(target error) bool {
+	if err, ok := target.(*rootError); ok {
+		return e.msg == err.msg && e.code == err.code && reflect.DeepEqual(e.kvs, err.kvs)
+	}
 	if err, ok := target.(*wrapError); ok {
-		return e.msg == err.msg
+		return e.msg == err.msg && e.code == err.code && reflect.DeepEqual(e.kvs, err.kvs)
 	}
 	return e.msg == target.Error()
 }
