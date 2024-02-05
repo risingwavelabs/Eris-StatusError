@@ -880,37 +880,38 @@ func TestRootWrapping(t *testing.T) {
 	col := "password"
 	rootErr := fmt.Errorf("ERROR: column \"%s\" does not exist (SQLSTATE 42703)", col)
 	email := "dummy@email.com"
-	extErr := eris.Wrapf(rootErr, "failed to get user by email %s", email)
+	wrappedErr := eris.Wrapf(rootErr, "failed to get user by email %s", email)
 
 	// validate nested error string
 	expect := "code(internal) failed to get user by email dummy@email.com: ERROR: column \"password\" does not exist (SQLSTATE 42703)"
-	got := extErr.Error()
+	got := wrappedErr.Error()
 	if got != expect {
 		t.Errorf("Expected %s, got %s", expect, got)
 	}
 
 	// validate that the correct error is the root error
 	expectRoot := rootErr.Error()
-	gotRoot := eris.Cause(extErr).Error()
+	gotRoot := eris.Cause(wrappedErr).Error()
 	if gotRoot != expectRoot {
 		t.Errorf("Expected %s, got %s", expectRoot, gotRoot)
 	}
 
 	// unwrap should result in root error
-	unwrapGot := eris.Unwrap(extErr).Error()
+	unwrapGot := eris.Unwrap(wrappedErr).Error()
 	if unwrapGot != expectRoot {
 		t.Errorf("Expected %s, got %s", expectRoot, unwrapGot)
 	}
 
 	// test unpack external
-	gotUnpackExtMsg := eris.Unpack(extErr).ErrExternal.Error()
-	expectedUnpackExtMsg := extErr.Error()
+	unpacked := eris.Unpack(wrappedErr)
+	gotUnpackExtMsg := unpacked.ErrExternal.Error()
+	expectedUnpackExtMsg := wrappedErr.Error()
 	if gotUnpackExtMsg != expectedUnpackExtMsg {
 		t.Errorf("Expected %s, got %s", expectedUnpackExtMsg, gotUnpackExtMsg)
 	}
 
 	// test unpack root
-	gotUnpackRootMsg := eris.Unpack(extErr).ErrRoot.Msg
+	gotUnpackRootMsg := unpacked.ErrRoot.Msg
 	expectedUnpackRootMsg := "ERROR: column \"password\" does not exist (SQLSTATE 42703)"
 	if gotUnpackRootMsg != expectedUnpackRootMsg {
 		t.Errorf("Expected %s, got %s", expectedUnpackRootMsg, gotUnpackRootMsg)
@@ -918,7 +919,7 @@ func TestRootWrapping(t *testing.T) {
 
 	// test entire json
 	expectJson := `{"external":{"code":"internal","message":"failed to get user by email dummy@email.com"},"root":"ERROR: column \"password\" does not exist (SQLSTATE 42703)"}`
-	tmp, _ := json.Marshal(eris.ToJSON(extErr, false))
+	tmp, _ := json.Marshal(eris.ToJSON(wrappedErr, false))
 	gotJson := string(tmp)
 	if expectJson != gotJson {
 		t.Errorf("Expected %s, got %s", expectJson, gotJson)
