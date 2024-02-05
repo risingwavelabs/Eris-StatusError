@@ -876,16 +876,6 @@ func TestWrapType(t *testing.T) {
 	}
 }
 
-// eris.Wrapf(err, "failed to get user by email %s", email)
-// results in below, but the SQLSTATE 42703 should be root
-//
-//	{
-//	    "external": "ERROR: column \"password\" does not exist (SQLSTATE 42703)",
-//	    "root": {
-//	        "code": "internal",
-//	        "message": "failed to get user by email dummy@email.com"
-//	    }
-//	}
 func TestRootWrapping(t *testing.T) {
 	col := "password"
 	rootErr := fmt.Errorf("ERROR: column \"%s\" does not exist (SQLSTATE 42703)", col)
