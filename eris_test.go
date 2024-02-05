@@ -878,9 +878,10 @@ func TestWrapType(t *testing.T) {
 
 func TestRootWrapping(t *testing.T) {
 	col := "password"
-	rootErr := fmt.Errorf("ERROR: column \"%s\" does not exist (SQLSTATE 42703)", col)
+	rootErr := eris.Errorf("ERROR: column \"%s\" does not exist (SQLSTATE 42703)", col)
 	email := "dummy@email.com"
-	wrappedErr := eris.Wrapf(rootErr, "failed to get user by email %s", email)
+	wrapMsg := fmt.Sprintf("failed to get user by email %s", email)
+	wrappedErr := eris.Wrapf(rootErr, wrapMsg)
 
 	// validate nested error string
 	expect := "code(internal) failed to get user by email dummy@email.com: ERROR: column \"password\" does not exist (SQLSTATE 42703)"
@@ -902,12 +903,11 @@ func TestRootWrapping(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expectRoot, unwrapGot)
 	}
 
-	// test unpack external
+	// error chain
 	unpacked := eris.Unpack(wrappedErr)
-	gotUnpackExtMsg := unpacked.ErrExternal.Error()
-	expectedUnpackExtMsg := wrappedErr.Error()
-	if gotUnpackExtMsg != expectedUnpackExtMsg {
-		t.Errorf("Expected %s, got %s", expectedUnpackExtMsg, gotUnpackExtMsg)
+	firstErr := unpacked.ErrChain[0].Msg
+	if firstErr != wrapMsg {
+		t.Errorf("Expected %s, got %s", wrapMsg, firstErr)
 	}
 
 	// test unpack root
