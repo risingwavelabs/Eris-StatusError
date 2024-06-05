@@ -45,7 +45,7 @@ func GetKVs(err error) map[string]any {
 	return kvErr.KVs()
 }
 
-// GetProperty returns the property. If the property doesn't exist or type doesn't match, returns T{}, false
+// GetProperty returns the property. If the property doesn't exist or type doesn't match, returns T{}, false.
 func GetProperty[T any](err error, key string) (T, bool) {
 	val, ok := GetKVs(err)[key]
 	if !ok {
@@ -60,7 +60,7 @@ func GetProperty[T any](err error, key string) (T, bool) {
 	return typed, true
 }
 
-// GetPropertyP returns the property pointer. If the property doesn't exist or type doesn't match, returns nil
+// GetPropertyP returns the property pointer. If the property doesn't exist or type doesn't match, returns nil.
 func GetPropertyP[T any](err error, key string) *T {
 	val, ok := GetKVs(err)[key]
 	if !ok {
