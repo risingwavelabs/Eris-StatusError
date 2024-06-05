@@ -45,6 +45,34 @@ func GetKVs(err error) map[string]any {
 	return kvErr.KVs()
 }
 
+// GetProperty returns the property. If the property doesn't exist or type doesn't match, returns T{}, false
+func GetProperty[T any](err error, key string) (T, bool) {
+	val, ok := GetKVs(err)[key]
+	if !ok {
+		var empty T
+		return empty, false
+	}
+	typed, ok := val.(T)
+	if !ok {
+		var empty T
+		return empty, false
+	}
+	return typed, true
+}
+
+// GetPropertyP returns the property pointer. If the property doesn't exist or type doesn't match, returns nil
+func GetPropertyP[T any](err error, key string) *T {
+	val, ok := GetKVs(err)[key]
+	if !ok {
+		return nil
+	}
+	typed, ok := val.(T)
+	if !ok {
+		return nil
+	}
+	return &typed
+}
+
 // New creates a new root error with a static message and an error code 'unknown'.
 func New(msg string) statusError {
 	stack := callers(3) // callers(3) skips this method, stack.callers, and runtime.Callers

@@ -145,6 +145,70 @@ func TestExternalKVs(t *testing.T) {
 	}
 }
 
+func TestProperty(t *testing.T) {
+	tests := map[string]struct {
+		cause    error
+		key      string
+		exist    bool
+		property string // expected output
+	}{
+		"no property": {
+			cause: eris.New("error message"),
+			key:   "key1",
+			exist: false,
+		},
+		"property not found": {
+			cause: eris.New("error message").WithProperty("key2", "val2"),
+			key:   "key1",
+			exist: false,
+		},
+		"property type mismatch": {
+			cause: eris.New("error message").WithProperty("key1", 1234).WithProperty("key2", "val2"),
+			key:   "key1",
+			exist: false,
+		},
+		"error new property found": {
+			cause:    eris.New("error message").WithProperty("key1", "val1").WithProperty("key2", 2),
+			key:      "key1",
+			exist:    true,
+			property: "val1",
+		},
+		"error wrap property found": {
+			cause: eris.WithProperty(eris.WithProperty(
+				eris.Wrap(fmt.Errorf("external error"), "wrap"),
+				"key1", "val1",
+			), "key2", 2),
+			key:      "key1",
+			exist:    true,
+			property: "val1",
+		},
+	}
+	for desc, tc := range tests {
+		t.Run(desc, func(t *testing.T) {
+			v1, ok := eris.GetProperty[string](tc.cause, tc.key)
+			v2 := eris.GetPropertyP[string](tc.cause, tc.key)
+			if tc.exist {
+				if !ok {
+					t.Errorf("%v: expected ok { %v } got { %v }", desc, true, ok)
+				}
+				if v1 != tc.property {
+					t.Errorf("%v: expected { %v } got { %v }", desc, tc.property, v1)
+				}
+				if *v2 != tc.property {
+					t.Errorf("%v: expected { %v } got { %v }", desc, tc.property, v2)
+				}
+			} else {
+				if ok {
+					t.Errorf("%v: expected ok { %v } got { %v }", desc, false, ok)
+				}
+				if v2 != nil {
+					t.Errorf("%v: expected { %v } got { %v }", desc, nil, v2)
+				}
+			}
+		})
+	}
+}
+
 func TestErrorWrapping(t *testing.T) {
 	tests := map[string]struct {
 		cause  error    // root error
