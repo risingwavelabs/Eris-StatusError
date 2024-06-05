@@ -36,10 +36,10 @@ jobs:
       - name: unit-test
         run: |
           make test
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         name: Upload the codecov
         with:
-          # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          token: ${{ secrets.CODECOV_TOKEN }} # required
           files: ./cover.out
           flags: unittests # optional
           name: codecov-umbrella # optional
