@@ -7,6 +7,8 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
+PROJECT_DIR=$(shell pwd)
+
 .PHONY: help build fmt lint test release-tag release-push
 
 ## Show help
@@ -38,9 +40,12 @@ fmt:
 	@go fmt .
 
 ## Lint with golangci-lint
-lint:
+lint: golangci-lint
 	@echo Linting
-	@golangci-lint run --no-config --issues-exit-code=0 --timeout=5m
+	@$(PROJECT_DIR)/bin/golangci-lint run --config $(PROJECT_DIR)/.golangci.yaml
+
+golangci-lint:
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.0
 
 ## Format docs
 docs:
