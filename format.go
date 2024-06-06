@@ -2,6 +2,7 @@ package eris
 
 import (
 	"fmt"
+	"strings"
 )
 
 // FormatOptions defines output options like omitting stack traces and inverting the error or stack order.
@@ -103,8 +104,11 @@ func ToCustomString(err error, format StringFormat) string {
 	if format.Options.InvertOutput {
 		errSep := false
 		if format.Options.WithExternal && upErr.ErrExternal != nil {
-			str += formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
-			if (format.Options.WithTrace && len(upErr.ErrRoot.Stack) > 0) || upErr.ErrRoot.Msg != "" {
+			externalStr := formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
+			str += externalStr
+			if strings.Contains(externalStr, "\n") {
+				str += "\n"
+			} else if (format.Options.WithTrace && len(upErr.ErrRoot.Stack) > 0) || upErr.ErrRoot.Msg != "" {
 				errSep = true
 				str += format.ErrorSep
 			}
@@ -124,10 +128,13 @@ func ToCustomString(err error, format StringFormat) string {
 		}
 		str += upErr.ErrRoot.formatStr(format)
 		if format.Options.WithExternal && upErr.ErrExternal != nil {
-			if (format.Options.WithTrace && len(upErr.ErrRoot.Stack) > 0) || upErr.ErrRoot.Msg != "" {
+			externalStr := formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
+			if strings.Contains(externalStr, "\n") {
+				str += "\n"
+			} else if (format.Options.WithTrace && len(upErr.ErrRoot.Stack) > 0) || upErr.ErrRoot.Msg != "" {
 				str += format.ErrorSep
 			}
-			str += formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
+			str += externalStr
 		}
 	}
 
@@ -250,7 +257,17 @@ func ToCustomJSON(err error, format JSONFormat) map[string]any {
 
 	jsonMap := make(map[string]any)
 	if format.Options.WithExternal && upErr.ErrExternal != nil {
-		jsonMap["external"] = formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
+
+		join, ok := upErr.ErrExternal.(joinError)
+		if !ok {
+			jsonMap["external"] = formatExternalStr(upErr.ErrExternal, format.Options.WithTrace)
+		} else {
+			var externals []map[string]any
+			for _, e := range join.Unwrap() {
+				externals = append(externals, ToCustomJSON(e, format))
+			}
+			jsonMap["externals"] = externals
+		}
 	}
 
 	if upErr.ErrRoot.Msg != "" || len(upErr.ErrRoot.Stack) > 0 {
@@ -311,10 +328,28 @@ type UnpackedError struct {
 
 // String formatter for external errors.
 func formatExternalStr(err error, withTrace bool) string {
-	if withTrace {
-		return fmt.Sprintf("%+v", err)
+	type joinError interface {
+		Unwrap() []error
 	}
-	return fmt.Sprint(err)
+
+	format := "%v"
+	if withTrace {
+		format = "%+v"
+	}
+	join, ok := err.(joinError)
+	if !ok {
+		return fmt.Sprintf(format, err)
+	}
+
+	var strs []string
+	for i, e := range join.Unwrap() {
+		lines := strings.Split(fmt.Sprintf(format, e), "\n")
+		for no, line := range lines {
+			lines[no] = fmt.Sprintf("\t%s", line)
+		}
+		strs = append(strs, fmt.Sprintf("%d>", i)+strings.Join(lines, "\n"))
+	}
+	return strings.Join(strs, "\n")
 }
 
 // ErrRoot represents an error stack and the accompanying message.

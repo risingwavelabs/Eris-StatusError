@@ -2,6 +2,7 @@
 package eris
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -93,6 +94,19 @@ func Errorf(format string, args ...any) statusError {
 		stack:  stack,
 		code:   DEFAULT_ERROR_CODE_NEW,
 	}
+}
+
+type joinError interface {
+	Unwrap() []error
+}
+
+// Join returns an error that wraps the given errors.
+func Join(errs ...error) error {
+	internal := errors.Join(errs...)
+	if internal == nil {
+		return nil
+	}
+	return wrap(internal, "join error", DEFAULT_ERROR_CODE_NEW)
 }
 
 // Wrap adds additional context to all error types while maintaining the type of the original error. Adds a default error code 'internal'
