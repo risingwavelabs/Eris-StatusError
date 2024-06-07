@@ -3,7 +3,9 @@ package eris_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/risingwavelabs/eris"
@@ -362,7 +364,7 @@ func TestFormatJSONWithStack(t *testing.T) {
 					t.Fatalf("%v: expected a 'message' field in the output but didn't find one { %v }", desc, errJSON)
 				}
 				if rootMap["message"] != tt.rootOutput["message"] {
-					t.Errorf("%v: expected { %v } got { %v }", desc, rootMap["message"], tt.rootOutput["message"])
+					t.Errorf("%v: expected { %v } got { %v }", desc, tt.rootOutput["message"], rootMap["message"])
 				}
 				if _, exists := rootMap["stack"]; !exists {
 					t.Fatalf("%v: expected a 'stack' field in the output but didn't find one { %v }", desc, errJSON)
@@ -381,7 +383,7 @@ func TestFormatJSONWithStack(t *testing.T) {
 						t.Fatalf("%v: expected a 'message' field in the output but didn't find one { %v }", desc, errJSON)
 					}
 					if wrapMap[i]["message"] != tt.wrapOutput[i]["message"] {
-						t.Errorf("%v: expected { %v } got { %v }", desc, wrapMap[i]["message"], tt.wrapOutput[i]["message"])
+						t.Errorf("%v: expected { %v } got { %v }", desc, tt.wrapOutput[i]["message"], wrapMap[i]["message"])
 					}
 					if _, exists := wrapMap[i]["stack"]; !exists {
 						t.Fatalf("%v: expected a 'stack' field in the output but didn't find one { %v }", desc, errJSON)
@@ -389,6 +391,193 @@ func TestFormatJSONWithStack(t *testing.T) {
 				}
 			} else {
 				t.Errorf("%v: expected wrap error is malformed { %v }", desc, errJSON)
+			}
+		})
+	}
+}
+
+func TestFormatJoinError(t *testing.T) {
+	tests := map[string]struct {
+		input           error
+		withTrace       bool
+		withExternal    bool
+		stringOutput    string
+		regexOutput     *regexp.Regexp
+		rootOutput      map[string]any
+		wrapOutput      []map[string]any
+		externalsOutput []map[string]any
+	}{
+		"without trace and external": {
+			input: eris.Wrap(eris.Join(
+				fmt.Errorf("fmt error"),
+				eris.Wrap(eris.Wrap(fmt.Errorf("external"), "wrap2"), "wrap1"),
+				eris.New("eris error"),
+			), "outer wrap"),
+			withTrace:    false,
+			withExternal: false,
+			stringOutput: "code(internal) outer wrap: code(unknown) join error",
+			rootOutput: map[string]any{
+				"message": "join error",
+			},
+			wrapOutput: []map[string]any{
+				{
+					"message": "outer wrap",
+				},
+			},
+		},
+		"without trace": {
+			input: eris.Wrap(eris.Join(
+				fmt.Errorf("fmt error"),
+				eris.Wrap(eris.Wrap(fmt.Errorf("external"), "wrap2"), "wrap1"),
+				eris.New("eris error"),
+			), "outer wrap"),
+			withTrace:    false,
+			withExternal: true,
+			stringOutput: `code(internal) outer wrap: code(unknown) join error
+0>	fmt error
+1>	code(internal) wrap1: code(internal) wrap2: external
+2>	code(unknown) eris error`,
+			rootOutput: map[string]any{
+				"message": "join error",
+			},
+			wrapOutput: []map[string]any{
+				{
+					"message": "outer wrap",
+				},
+			},
+			externalsOutput: []map[string]any{
+				{
+					"external": "fmt error",
+				}, {
+					"external": "external",
+					"root":     map[string]any{},
+					"wrap":     []map[string]any{},
+				}, {
+					"root": map[string]any{},
+				},
+			},
+		},
+		"with trace": {
+			input: eris.Wrap(eris.Join(
+				fmt.Errorf("fmt error"),
+				eris.Wrap(eris.Wrap(fmt.Errorf("external"), "wrap2"), "wrap1"),
+				eris.New("eris error"),
+			), "outer wrap"),
+			withTrace:    true,
+			withExternal: true,
+			regexOutput: regexp.MustCompile(`code\(internal\) outer wrap
+	eris_test\.TestFormatJoinError:\S+:\d+
+code\(unknown\) join error
+	eris_test\.TestFormatJoinError:\S+:\d+
+	eris_test\.TestFormatJoinError:\S+:\d+
+0>	fmt error
+1>	code\(internal\) wrap1
+		eris_test\.TestFormatJoinError:\S+:\d+
+	code\(internal\) wrap2
+		eris_test\.TestFormatJoinError:\S+:\d+
+		eris_test\.TestFormatJoinError:\S+:\d+
+	external
+2>	code\(unknown\) eris error
+		eris_test\.TestFormatJoinError:\S+:\d+`),
+			rootOutput: map[string]any{
+				"message": "join error",
+			},
+			wrapOutput: []map[string]any{
+				{
+					"message": "outer wrap",
+				},
+			},
+			externalsOutput: []map[string]any{
+				{
+					"external": "fmt error",
+				}, {
+					"external": "external",
+					"root":     map[string]any{},
+					"wrap":     []map[string]any{},
+				}, {
+					"root": map[string]any{},
+				},
+			},
+		},
+	}
+
+	for desc, tt := range tests {
+		t.Run(desc, func(t *testing.T) {
+			errStr := eris.ToCustomString(tt.input, eris.NewDefaultStringFormat(eris.FormatOptions{
+				WithTrace:    tt.withTrace,
+				WithExternal: tt.withExternal,
+			}))
+			if tt.stringOutput != "" && tt.stringOutput != errStr {
+				t.Errorf("%v: expected { %v } got { %v }", desc, tt.stringOutput, errStr)
+			}
+			if tt.regexOutput != nil && !tt.regexOutput.MatchString(errStr) {
+				t.Errorf("%v: expected match { %v } got { %v }", desc, tt.regexOutput.String(), errStr)
+			}
+
+			errJSON := eris.ToCustomJSON(tt.input, eris.NewDefaultJSONFormat(eris.FormatOptions{
+				WithTrace:    tt.withTrace,
+				WithExternal: tt.withExternal,
+			}))
+
+			// make sure messages are correct and stack elements exist (actual stack validation is in stack_test.go)
+			if rootMap, ok := errJSON["root"].(map[string]any); ok {
+				if _, exists := rootMap["message"]; !exists {
+					t.Fatalf("%v: expected a 'message' field in the output but didn't find one { %v }", desc, errJSON)
+				}
+				if rootMap["message"] != tt.rootOutput["message"] {
+					t.Errorf("%v: expected { %v } got { %v }", desc, tt.rootOutput["message"], rootMap["message"])
+				}
+				if _, exists := rootMap["stack"]; tt.withTrace && !exists {
+					t.Fatalf("%v: expected a 'stack' field in the output but didn't find one { %v }", desc, errJSON)
+				}
+			} else {
+				t.Errorf("%v: expected root error is malformed { %v }", desc, errJSON)
+			}
+
+			// make sure messages are correct and stack elements exist (actual stack validation is in stack_test.go)
+			if wrapMap, ok := errJSON["wrap"].([]map[string]any); ok {
+				if len(tt.wrapOutput) != len(wrapMap) {
+					t.Fatalf("%v: expected number of wrap layers { %v } doesn't match actual { %v }", desc, len(tt.wrapOutput), len(wrapMap))
+				}
+				for i := 0; i < len(wrapMap); i++ {
+					if _, exists := wrapMap[i]["message"]; !exists {
+						t.Fatalf("%v: expected a 'message' field in the output but didn't find one { %v }", desc, errJSON)
+					}
+					if wrapMap[i]["message"] != tt.wrapOutput[i]["message"] {
+						t.Errorf("%v: expected { %v } got { %v }", desc, tt.wrapOutput[i]["message"], wrapMap[i]["message"])
+					}
+					if _, exists := wrapMap[i]["stack"]; tt.withTrace && !exists {
+						t.Fatalf("%v: expected a 'stack' field in the output but didn't find one { %v }", desc, errJSON)
+					}
+				}
+			} else {
+				t.Errorf("%v: expected wrap error is malformed { %v }", desc, errJSON)
+			}
+
+			if externalsMap, ok := errJSON["externals"].([]map[string]any); ok {
+				if len(tt.externalsOutput) != len(externalsMap) {
+					t.Fatalf("%v: expected number of externals errors { %v } doesn't match actual { %v }", desc, len(tt.externalsOutput), len(externalsMap))
+				}
+				for i, externalsOutputItem := range tt.externalsOutput {
+					for key, val := range externalsOutputItem {
+						switch val.(type) {
+						case string:
+							if externalsMap[i][key] != val {
+								t.Errorf("%v: expected externals[%d][%s] { %v } got { %v }", desc, i, key, val, externalsMap[i][key])
+							}
+						case map[string]any:
+							if _, ok := externalsMap[i][key].(map[string]any); !ok {
+								t.Errorf("%v: expected externals[%d][%s] is object got { %v }", desc, i, key, externalsMap[i][key])
+							}
+						case []map[string]any:
+							if _, ok := externalsMap[i][key].([]map[string]any); !ok {
+								t.Errorf("%v: expected externals[%d][%s] is object array got { %v }", desc, i, key, externalsMap[i][key])
+							}
+						}
+					}
+				}
+			} else if tt.withExternal {
+				t.Errorf("%v: expected externals error is malformed { %v }", desc, errJSON)
 			}
 		})
 	}
