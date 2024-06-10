@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/risingwavelabs/eris"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -960,4 +961,10 @@ func TestJoinError(t *testing.T) {
 			t.Errorf("join 2 errors should be 2 errors")
 		}
 	}
+
+	err1 := errors.New("err1")
+	err2 := errors.New("err2")
+	err = eris.Join(err1, err2)
+	assert.True(t, errors.Is(err, err1))
+	assert.True(t, errors.Is(err, err2))
 }

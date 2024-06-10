@@ -97,3 +97,6 @@ spellcheck:
 		echo "ERROR: cspell not found, install it manually! Link: https://cspell.org/docs/getting-started"; \
 		exit 1; \
 	fi
+
+mod-tidy: ## run go mod tidy
+	go mod tidy
