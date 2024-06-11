@@ -529,6 +529,11 @@ func TestErrorIs(t *testing.T) {
 			compare: rootErr,
 			output:  true,
 		},
+		"join error (nil)": {
+			cause:   eris.Join(nil, nil),
+			compare: nil,
+			output:  true,
+		},
 		"join error (wrap)": {
 			cause:   eris.Join(externalErr, eris.Wrap(rootErr, "eris wrap error")),
 			compare: eris.New("eris wrap error").WithCode(eris.CodeInternal),
