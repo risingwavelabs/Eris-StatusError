@@ -433,7 +433,9 @@ func (e *rootError) Format(s fmt.State, verb rune) {
 	printError(e, s, verb)
 }
 
-// Is returns true if both errors have the same message and code. Ignores additional KV pairs.
+// Is returns true if both errors have the same message and code.
+// In case of a joined error, returns true if at least one of the joined errors is equal to target.
+// Ignores additional KV pairs.
 func (e *rootError) Is(target error) bool {
 	if joinErr, ok := e.ext.(joinError); ok {
 		for _, err := range joinErr.Unwrap() {
