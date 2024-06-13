@@ -938,3 +938,26 @@ func TestWrapType(t *testing.T) {
 		t.Errorf("expected nil error if wrap nil error, but error was %v", erisErr)
 	}
 }
+
+func TestJoinError(t *testing.T) {
+	err := eris.Join(nil, nil)
+	if err != nil {
+		t.Errorf("join nil should be nil")
+	}
+	err = eris.Join(nil, fmt.Errorf("external error"))
+	if err == nil {
+		t.Errorf("join error should be error")
+	}
+	err = eris.Join(fmt.Errorf("err1"), nil, fmt.Errorf("err2"))
+	if err == nil {
+		t.Errorf("join errors should be error")
+	}
+	type joinError interface {
+		Unwrap() []error
+	}
+	if joinErr, ok := eris.Unwrap(err).(joinError); !ok {
+		if len(joinErr.Unwrap()) != 2 {
+			t.Errorf("join 2 errors should be 2 errors")
+		}
+	}
+}
