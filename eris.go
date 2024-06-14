@@ -433,8 +433,18 @@ func (e *rootError) Format(s fmt.State, verb rune) {
 	printError(e, s, verb)
 }
 
-// Is returns true if both errors have the same message and code. Ignores additional KV pairs.
+// Is returns true if both errors have the same message and code.
+// In case of a joined error, returns true if at least one of the joined errors is equal to target.
+// Ignores additional KV pairs.
 func (e *rootError) Is(target error) bool {
+	if joinErr, ok := e.ext.(joinError); ok {
+		for _, err := range joinErr.Unwrap() {
+			if Is(err, target) {
+				return true
+			}
+		}
+		return false
+	}
 	if err, ok := target.(*rootError); ok {
 		return e.msg == err.msg && e.code == err.code && reflect.DeepEqual(e.kvs, err.kvs)
 	}
@@ -446,6 +456,14 @@ func (e *rootError) Is(target error) bool {
 
 // As returns true if the error message in the target error is equivalent to the error message in the root error.
 func (e *rootError) As(target any) bool {
+	if joinErr, ok := e.ext.(joinError); ok {
+		for _, err := range joinErr.Unwrap() {
+			if As(err, target) {
+				return true
+			}
+		}
+		return false
+	}
 	t := reflect.Indirect(reflect.ValueOf(target)).Interface()
 	if err, ok := t.(*rootError); ok {
 		if e.msg == err.msg {
