@@ -128,6 +128,35 @@ func Wrapf(err error, format string, args ...any) error {
 	return wrap(err, fmt.Sprintf(format, args...), DEFAULT_ERROR_CODE_WRAP)
 }
 
+// PassThrough adds additional context to all error types while maintaining the type of the original error.
+//
+// This method behaves like Wrap but will copy the code and properties from underlying error.
+func PassThrough(err error, msg string) error {
+	return PassThroughf(err, fmt.Sprint(msg))
+}
+
+// PassThroughf adds additional context to all error types while maintaining the type of the original error.
+//
+// This is a convenience method for wrapping errors with formatted messages and is otherwise the same as PassThrough.
+func PassThroughf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	newErr := wrap(err, fmt.Sprintf(format, args...), DEFAULT_ERROR_CODE_WRAP)
+
+	code := GetCode(err)
+	if code != CodeUnknown {
+		newErr = WithCode(newErr, code)
+	}
+	kvs := GetKVs(err)
+	if kvs != nil {
+		for k, v := range kvs {
+			newErr = WithProperty(newErr, k, v)
+		}
+	}
+	return newErr
+}
+
 func wrap(err error, msg string, code Code) error {
 	if err == nil {
 		return nil
