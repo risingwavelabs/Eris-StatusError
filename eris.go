@@ -149,10 +149,8 @@ func PassThroughf(err error, format string, args ...any) error {
 		newErr = WithCode(newErr, code)
 	}
 	kvs := GetKVs(err)
-	if kvs != nil {
-		for k, v := range kvs {
-			newErr = WithProperty(newErr, k, v)
-		}
+	for k, v := range kvs {
+		newErr = WithProperty(newErr, k, v)
 	}
 	return newErr
 }
