@@ -374,6 +374,67 @@ func TestExternalErrorWrapping(t *testing.T) {
 	}
 }
 
+func TestErrorPassThrough(t *testing.T) {
+	tests := map[string]struct {
+		cause  error    // root error
+		input  []string // input for error wrapping
+		output string   // expected output
+	}{
+		"nil root error": {
+			cause: nil,
+			input: []string{"additional context"},
+		},
+		"external error passing": {
+			cause:  fmt.Errorf("external error"),
+			input:  []string{"additional context"},
+			output: "code(internal) additional context: external error",
+		},
+		"standard error passing with a global root cause": {
+			cause:  globalErr,
+			input:  []string{"additional context", "even more context"},
+			output: "code(internal) even more context: code(internal) additional context: code(unknown) global error",
+		},
+		"standard error passing with a local root cause": {
+			cause:  eris.New("root error").WithCode(eris.CodeInvalidArgument),
+			input:  []string{"additional context", "even more context"},
+			output: "code(invalid argument) even more context: code(invalid argument) additional context: code(invalid argument) root error",
+		},
+		"standard error passing with a local root cause (eris.Errorf)": {
+			cause:  eris.Errorf("%v root error", "formatted").WithCode(eris.CodeInvalidArgument),
+			input:  []string{"additional context", "even more context"},
+			output: "code(invalid argument) even more context: code(invalid argument) additional context: code(invalid argument) formatted root error",
+		},
+		"standard error passing with a local root cause property": {
+			cause:  eris.New("root error").WithProperty("key1", "val1"),
+			input:  []string{"additional context", "even more context"},
+			output: "code(internal) KVs(map[key1:val1]) even more context: code(internal) KVs(map[key1:val1]) additional context: code(unknown) KVs(map[key1:val1]) root error",
+		},
+		"standard error passing with a local root cause property (eris.Errorf)": {
+			cause:  eris.Errorf("%v root error", "formatted").WithProperty("key1", "val1"),
+			input:  []string{"additional context", "even more context"},
+			output: "code(internal) KVs(map[key1:val1]) even more context: code(internal) KVs(map[key1:val1]) additional context: code(unknown) KVs(map[key1:val1]) formatted root error",
+		},
+		"no error passing with a local root cause (eris.Errorf)": {
+			cause:  eris.Errorf("%v root error", "formatted").WithCode(eris.CodeUnknown),
+			output: "code(unknown) formatted root error",
+		},
+	}
+
+	for desc, tc := range tests {
+		t.Run(desc, func(t *testing.T) {
+			err := tc.cause
+			for _, str := range tc.input {
+				err = eris.PassThrough(err, str)
+			}
+			if err != nil && tc.cause == nil {
+				t.Errorf("%v: wrapping nil errors should return nil but got { %v }", desc, err)
+			} else if err != nil && tc.output != err.Error() {
+				t.Errorf("%v: expected { %v } got { %v }", desc, tc.output, err)
+			}
+		})
+	}
+}
+
 func TestErrorUnwrap(t *testing.T) {
 	tests := map[string]struct {
 		cause  error    // root error
